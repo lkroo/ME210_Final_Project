@@ -45,6 +45,22 @@ int ReadSerialInt(void){
 }
 
 
+// Helper functions
+/** Finds the index of the maximal value
+ *  within an array range [start,end)
+ */
+unsigned long maxi(int array[], 
+                   unsigned long start,
+                   unsigned long end) {
+  unsigned long ind = start;
+  for (unsigned long i=start+1; ind!=end; ++i) {
+    if (array[i]>array[ind]) {
+      ind = i;
+    }
+  }
+  return ind;
+}
+
 // 
 // CLASSES
 // 
@@ -81,9 +97,13 @@ private:
   }
 
   /** Convolution operator
+   * 
    * @param Signal[READ_LENGTH]
    * @param Kernel[READ_LENGTH]
    * @param Result[READ_LENGTH*2-1]
+   *
+   * @post Result contains the convolution of 
+   *       Signal and Kernel
    * 
    * Code via: http://stackoverflow.com/questions/8424170/1d-linear-convolution-in-ansi-c-code
    */
