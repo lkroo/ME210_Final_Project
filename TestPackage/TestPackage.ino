@@ -18,18 +18,67 @@
  ************************************************************/
  
 /*---------------Includes-----------------------------------*/
+/*------ ROBOT CONFIGURATION FILE --------*/
 
-/*---------------Module Defines-----------------------------*/
-#define LIGHT_THRESHOLD    350 // smaller at night
-#define FENCE_THRESHOLD    700
-#define ONE_SEC            1000
-#define TIME_INTERVAL      ONE_SEC
+// ANALOG SENSORS
+#define CLIP_SENSE        A0 // clip sensor
+#define LINE_BACK_SENSE   A1 // back line sensor
+#define LINE_RIGHT_SENSE  A2 // right line sensor
+#define LINE_CENTER_SENSE A3 // center line sensor
+#define LINE_LEFT_SENSE   A4 // left line sensor
+#define FLYWHEEL_SENSE    A5 // Flywheel speed sensor
+// DIGITAL PINS
+#define SOLENOID       2 // 
+#define FLYWHEEL       3 // 
+#define BEACON1        5 //
+#define BEACON2        6 // 
+#define SERVO_PAN      9 // 
+#define MOTOR_POW_L   10 // controlled by OC1B
+#define MOTOR_POW_R   11 // controlled by OC2A
+#define MOTOR_DIR_L   12 // 1 = forward, 0 = back
+#define MOTOR_DIR_R   13 // 1 = forward, 0 = back
+//LINE SENSOR HEX VALUES - hex value summarizing status of line followers //STICK INTO RESPFN
+#define VALline0000 0x00
+#define VALline000R 0x01
+#define VALline00C0 0x02
+#define VALline00CR 0x03
+#define VALline0L00 0x04
+#define VALline0L0R 0x05
+#define VALline0LC0 0x06
+#define VALline0LCR 0x07
+#define VALlineF000 0x08
+#define VALlineF00R 0x09
+#define VALlineF0C0 0x10
+#define VALlineF0CR 0x11
+#define VALlineFL00 0x12
+#define VALlineFL0R 0x13
+#define VALlineFLC0 0x14
+#define VALlineFLCR 0x15
 
+/*---------------Helper Functions-----------------*/
+/** Reads a string from Serial and
+ *  casts it to an integer value
+ */
+int ReadSerialInt(void){
+  String input = "";
+  while (Serial.available()>0){
+    int inChar = Serial.read();
+    if (isDigit(inChar)) {
+      // convert the incoming byte to a char
+      // and add it to the string:
+      input += (char)inChar;
+    }
+  }
+  return input.toInt();
+}
+
+/*---------------Helper Functions-----------------*/
 void setup() {
   
   Serial.begin(9600);
 }
 
+/*---------------Helper Functions-----------------*/
 void loop() {
   if (TestForKey()) RespToKey();
 
@@ -48,57 +97,11 @@ void RespToKey(void) {
   theKey = Serial.read();
   
   Serial.write(theKey);
-  Serial.print(", ASCII=");
-  Serial.println(theKey,HEX);
+  Serial.println("");
   
-  sparki.println(theKey);
-  sparki.updateLCD();
- 
-   if (theKey == 'o') {
-   motorOn();
+  switch (theKey) {
+    case "A":
+      // stuff
+      break;
   }
-   if (theKey=='n') {
-   motorOff();
-  }
-   if (theKey=='v') {
-   Serial.println(12);
-  }
-   if (theKey == 'l'){
-   Serial.println("Light =" );
-   Serial.println(LightLevel());
-   }
-
-   if(theKey == 'I'){
-    readIRBumpers();
-   }
-  
 }
-
-void motorOn(void) {
-  sparki.println(" ON");
-  sparki.updateLCD();
-  LeftMtrSpeed(0);
-  RightMtrSpeed(10);
-}
-
-void motorOff(void) {
-  sparki.println(" OFF");
-  sparki.updateLCD();
-  LeftMtrSpeed(0);
-  RightMtrSpeed(0);
-}
-
-void readIRBumpers(void){
-
-Serial.println("Edge Sensor Reading (Right) =");
-Serial.println(  sparki.edgeRight());;
-Serial.println("Line Sensor Reading (Right) =");
-Serial.println(  sparki.lineRight());
-Serial.println("Line Sensor Reading (Center) =");
-Serial.println(  sparki.lineCenter());
-Serial.println("Line Sensor Reading (Left) =");
-Serial.println(  sparki.lineLeft());  
-Serial.println("Edge Sensor Reading (Left) =");
-Serial.println(  sparki.edgeLeft());
-   }
-
