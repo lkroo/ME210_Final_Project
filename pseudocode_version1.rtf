@@ -1,0 +1,113 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1404\cocoasubrtf340
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww16200\viewh16200\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 \
+\
+
+\b \ul Header
+\b0 \ulnone \
+Include:\
+timers library\
+pitches library\
+\
+Module definitions:\
+pin definitions\
+time durations (in microseconds)\
+variables\
+\
+function prototypes:\
+??\
+\
+
+\b \ul Main Functions\
+
+\b0 void setup()\
+\ulnone declare input/output pins\
+initialize timers\
+\ul \
+void loop()\
+
+\b \ulnone switch case:\
+
+\b0 	case 1: initiatingBeaconLocation\
+		- initialize new BeaconSensor object and define an expected beacon reading pattern\
+		-bsensor.findbeacons()\
+		- case ++\
+		\
+	case 2: FindingBeaconLocation\
+		- grab the current time (millis)\
+		- call sensor.beaconUpkeep(currentTime) to fill up data array\
+		- when the data array is full (length == 180), case ++\
+\ul \
+	\ulnone case 3: findingBotOrientation\
+		- define a desired orientation (signed int) \
+		- get current orientation by calling bsensor.getHeading()\
+		- turnAngle = desiredOrientation - currentOrientation;\
+		- delete bsensor object (for memory happiness)\
+		- case ++\
+		\
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 	case 4: rotatingBot\
+		- rotate bot by turnAngle\
+		- case++\
+\
+	case 5: goToCenterlineTape\
+		- begin moving forward (in a straight line)\
+		- When front line sensor sees a line, stop and case ++\
+\
+	case 6: AlignBot\
+		-initialize timer\
+		- follow the centerline by first turning CW\
+		- use line following scheme to move forward\
+		- when timer runs out, stop and case ++\
+	\
+	case 7: backingUpToFiringPosition\
+		- follow the centerline while moving backward (line following scheme BACKWARDS)\
+		- when the 3 back line sensors simultaneously trigger, stop motion.\
+		- initialize timer\
+		- move straight forward until timer expires. Then stop. (this is to ensure the ENTIRE robot is outside of the reloading zone)\
+		- case ++\
+\
+	case 8: initializeTargeting\
+		- set park flag to true (IF clip is full)\
+		- grab the current time (millis)\
+		- call sensor.beaconUpkeep(currentTime) to fill up data array\
+		- when the data array is full (length == 180), case ++\
+\
+	case 9: targeting\
+		- define an expected orientation (0 deg)  and EXPECTED beacon pattern\
+		- get current orientation by calling bsensor.getHeading()\
+		- define orientationOffset = expected - current orientation.\
+		- delete bsensor object\
+		- define an array of 5 integers which define angles of target beacons. ( 
+\b beaconLocations
+\b0  = Expected + orientationOffset)\
+		- case ++\
+\
+	case 10: firing\
+		while clip is NOT empty:\
+		- loop from i = 1:5\
+			1. move servo into angle(i)\
+			2. fire 1 chip\
+		- case ++\
+\
+	case 11: reloading\
+		- backup for set period of time (same as movement forward in case backingUpToFiringPosition).\
+		- do nothing for set period of time\
+		- move forward until 3 line sensors trigger\
+		- initialize timer\
+		- move straight forward until timer expires. Then stop. (this is to ensure the ENTIRE robot is outside of the reloading zone)\
+		- change to case 8\
+		\
+	case 13: GameOver\
+		- stop all systems.\
+\
+		- If 2 min expired, case = 13\ul \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+\cf0 \ulc0 \
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\b \cf0 \ulc0 Module Functions}
