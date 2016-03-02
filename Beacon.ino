@@ -2,12 +2,12 @@
 // PREPROCESSOR
 // 
 // Beacon Sensing
-#define read_length 180
-#define read_time 10  // Time for short move
-#define wait_time 500 // Time for rapid move
-#define read_pin 13
+#define READ_LENGTH 180
+#define READ_TIME 10  // Time for short move
+#define WAIT_TIME 500 // Time for rapid move
+#define READ_PIN 13
 // ???
-#define analogPin 3
+#define ANALOG_PIN 3
 
 //
 // FUNCTIONS
@@ -55,8 +55,8 @@ private:
   bool slew_ = 0; // 
   unsigned int idx_ = 0;   // angle index
   unsigned long last_ = 0; // last time
-  bool read_master_[read_length];
-  bool read_current_[read_length];
+  bool read_master_[READ_LENGTH];
+  bool read_current_[READ_LENGTH];
   bool scanning_ = 0;
   bool valid_read_ = 0;
   bool scan_start_ = 0;
@@ -70,15 +70,43 @@ private:
       idx_ = 1;
     }
     // High bound
-    else if (idx_==read_length-1) {
+    else if (idx_==READ_LENGTH-1) {
       dir_ = 0;
-      idx_ = read_length-2;
+      idx_ = READ_LENGTH-2;
     }
     // Interior
     else {
       idx_ += dir_ - (1-dir_);
     }
   }
+
+  /** Convolution operator
+   * @param Signal[READ_LENGTH]
+   * @param Kernel[READ_LENGTH]
+   * @param Result[READ_LENGTH*2-1]
+   */
+  void convolve(const bool Signal[],
+                const bool Kernel[],
+                int Result[])
+  {
+    unsigned long n;
+
+    for (n = 0; n < READ_LENGTH + READ_LENGTH - 1; n++)
+    {
+      unsigned long kmin, kmax, k;
+
+      Result[n] = 0;
+
+      kmin = (n >= READ_LENGTH - 1) ? n - (READ_LENGTH - 1) : 0;
+      kmax = (n < READ_LENGTH - 1) ? n : READ_LENGTH - 1;
+
+      for (k = kmin; k <= kmax; k++)
+      {
+        Result[n] += Signal[k] * Kernel[n - k];
+      }
+    }
+  }
+
 public:
   /** Public constructor
    */
@@ -96,25 +124,32 @@ public:
     if (scanning_) {
       // if we're just starting, march to zero
       if (scan_start_) {
-        if (time - last_ > wait_time) {
+        if (time - last_ > WAIT_TIME) {
           scan_start_ = 0;
           last_ = millis();
         }
       }
       // if we've started, do the sweep
       else {
-        if (time - last_ > read_time) {
+        if (time - last_ > READ_TIME) {
           // Take reading at current sensor angle
-          read_current_[idx_] = digitalRead(read_pin);
+          read_current_[idx_] = digitalRead(READ_PIN);
           // Sweep the servo idx_
           sweepAngle();
           // Reset timer
           last_ = millis();
         }
       }
+      // End scan
+      if (idx_==READ_LENGTH) {
+        scanning_ = 0;
+        // Reset to 90 deg
+        idx_ = READ_LENGTH/2
+      }
     }
+
     // Update servo set point to angle
-    setServoAngle(idx_*180/read_length);
+    setServoAngle(idx_*180/READ_LENGTH);
     // DEBUG -- print to serial
     Serial.print("[");
     Serial.print(idx_);
@@ -126,9 +161,21 @@ public:
   /** Begins a new sensor sweep
    */
   void findBeacons() {
-    scanning_ = 1;
+    scanning_   = 1;
     scan_start_ = 1;
-    idx_ = 0;
+    idx_        = 0;
+  }
+
+  /** Returns the current scan
+   */
+  bool* getInfo() const {
+    return read_current_;
+  }
+
+  /** Invalidates the current scan
+   */
+  void clear() {
+    valid_read_ = 0;
   }
 
   /** Returns whether scanning
@@ -169,7 +216,7 @@ void setup() {
   Serial.begin(250000);
 
   // Beacon Code
-  pinMode(read_pin,INPUT); // set up beacon sensor pin
+  pinMode(READ_PIN,INPUT); // set up beacon sensor pin
   
   // Servo Code
   pinMode(9, OUTPUT);
