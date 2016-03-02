@@ -3,9 +3,8 @@
 // 
 // Beacon Sensing
 #define READ_LENGTH 180
-#define READ_TIME 10  // Time for short move
-#define WAIT_TIME 500 // Time for rapid move
-#define READ_PIN 13
+#define READ_TIME 20  // Time for short move
+#define READ_PIN 5
 #define CONV_THRESH 1 // Threshold for a valid signal sweep
 #define idx2deg(idx) idx*180/READ_LENGTH // convert id to angle
 // ???
@@ -60,8 +59,8 @@ int ReadSerialInt(void){
  * 
  * Code via: http://stackoverflow.com/questions/8424170/1d-linear-convolution-in-ansi-c-code
  */
-void convolve(const bool Signal[],
-              const bool Kernel[],
+void convolve(const short Signal[],
+              const short Kernel[],
               char Result[])
 {
   unsigned long n;
@@ -103,8 +102,9 @@ private:
   bool slew_ = 0; // 
   unsigned int idx_ = 0;   // angle index
   unsigned long last_ = 0; // last time
-  bool read_master_[READ_LENGTH];  // sensor read at heading zero
-  bool read_current_[READ_LENGTH]; // current sensor read
+  // short read_master_[READ_LENGTH];  // sensor read at heading zero
+  short read_master_[READ_LENGTH] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  short read_current_[READ_LENGTH]; // current sensor read
   char read_conv_[READ_LENGTH*2-1]; // convolved readings
   bool scanning_ = 0;     // currently scanning?
   bool valid_read_ = 0;   // 
@@ -146,27 +146,39 @@ public:
     if (scanning_) {
       // if we're just starting, march to zero
       if (scan_start_) {
-        if (time - last_ > WAIT_TIME) {
-          scan_start_ = 0;
-          last_ = millis();
+        if (idx_ < READ_LENGTH-1) {
+          if (time - last_ > READ_TIME) {
+            ++idx_;
+            last_ = millis();
+          }
         }
+        else {
+          scan_start_ = 0;
+        }
+        
       }
       // if we've started, do the sweep
       else {
         if (time - last_ > READ_TIME) {
           // Take reading at current sensor angle
           read_current_[idx_] = digitalRead(READ_PIN);
+          // DEBUG -- print values
+          Serial.print("[");
+          Serial.print(idx_);
+          Serial.print(",");
+          Serial.print(read_current_[idx_]);
+          Serial.println("]");
+
           // Sweep the servo idx_
           sweepAngle();
           // Reset timer
           last_ = millis();
+          
         }
       }
       // End scan
-      if (idx_==READ_LENGTH) {
+      if (idx_==0) {
         scanning_ = 0;
-        // Reset to 90 deg
-        idx_ = READ_LENGTH/2;
       }
     }
 
@@ -174,11 +186,11 @@ public:
     setServoAngle(idx2deg(idx_));
 
     // DEBUG -- print to serial
-    Serial.print("[");
-    Serial.print(idx_);
-    Serial.print(",");
-    Serial.print(scanning_);
-    Serial.println("]");
+    // Serial.print("[");
+    // Serial.print(idx_);
+    // Serial.print(",");
+    // Serial.print(scanning_);
+    // Serial.println("]");
   }
 
   /** Begins a new sensor sweep
@@ -186,11 +198,14 @@ public:
   void findBeacons() {
     scanning_   = 1;
     scan_start_ = 1;
-    idx_        = 0;
   }
 
   /** Returns approximate heading
-   *  based on sensor scan
+   *  based on sensor scan. Angle
+   *  is given in terms of absolute
+   *  frame, positive from the vertical
+   *  axis, as defined in Erica's 
+   *  coordinate system
    * 
    * return heading in [0,360]
    * return -1 if estimate unreliable
@@ -219,7 +234,7 @@ public:
 
   /** Returns the current scan
    */
-  bool* getInfo() {
+  short* getInfo() {
     return read_current_;
   }
 
@@ -288,8 +303,15 @@ void loop() {
   // DEBUG -- Respond to serial input
   if (Serial.available()>0) {
     int res = ReadSerialInt();
+    // Do a scan
     if (res == 1) {
       bSensor.findBeacons();
+    }
+    // Compute the heading
+    if (res == 2) {
+      int head = bSensor.getHeading();
+      Serial.print("Heading = ");
+      Serial.println(head);
     }
   }
 }
