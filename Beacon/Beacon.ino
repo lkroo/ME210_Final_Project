@@ -6,6 +6,8 @@
 #define READ_TIME 10  // Time for short move
 #define WAIT_TIME 500 // Time for rapid move
 #define READ_PIN 13
+#define CONV_THRESH 1 // Threshold for a valid signal sweep
+#define idx2deg(idx) idx*180/READ_LENGTH // convert id to angle
 // ???
 #define ANALOG_PIN 3
 
@@ -46,19 +48,49 @@ int ReadSerialInt(void){
 
 
 // Helper functions
-/** Finds the index of the maximal value
- *  within an array range [start,end)
+
+/** Convolution operator
+ * 
+ * @param Signal[READ_LENGTH]
+ * @param Kernel[READ_LENGTH]
+ * @param Result[READ_LENGTH*2-1]
+ *
+ * @post Result contains the convolution of 
+ *       Signal and Kernel
+ * 
+ * Code via: http://stackoverflow.com/questions/8424170/1d-linear-convolution-in-ansi-c-code
  */
-unsigned long maxi(int array[], 
-                   unsigned long start,
-                   unsigned long end) {
-  unsigned long ind = start;
-  for (unsigned long i=start+1; ind!=end; ++i) {
-    if (array[i]>array[ind]) {
-      ind = i;
+void convolve(const bool Signal[],
+              const bool Kernel[],
+              char Result[])
+{
+  unsigned long n;
+
+  for (n = 0; n < READ_LENGTH + READ_LENGTH - 1; n++)
+  {
+    unsigned long kmin, kmax, k;
+
+    Result[n] = 0;
+
+    kmin = (n >= READ_LENGTH - 1) ? n - (READ_LENGTH - 1) : 0;
+    kmax = (n < READ_LENGTH - 1) ? n : READ_LENGTH - 1;
+
+    for (k = kmin; k <= kmax; k++)
+    {
+      Result[n] += Signal[k] * Kernel[n - k];
     }
   }
-  return ind;
+}
+
+/** Set degree angle to be in [0,360]
+ */
+int fixAngle(int angle) {
+  if (angle < 0) {
+    return fixAngle(angle+360);
+  }
+  if (angle > 360) {
+    return fixAngle(angle-360);
+  }
 }
 
 // 
@@ -71,11 +103,12 @@ private:
   bool slew_ = 0; // 
   unsigned int idx_ = 0;   // angle index
   unsigned long last_ = 0; // last time
-  bool read_master_[READ_LENGTH];
-  bool read_current_[READ_LENGTH];
-  bool scanning_ = 0;
-  bool valid_read_ = 0;
-  bool scan_start_ = 0;
+  bool read_master_[READ_LENGTH];  // sensor read at heading zero
+  bool read_current_[READ_LENGTH]; // current sensor read
+  char read_conv_[READ_LENGTH*2-1]; // convolved readings
+  bool scanning_ = 0;     // currently scanning?
+  bool valid_read_ = 0;   // 
+  bool scan_start_ = 0;   // 
 
   /** Sweeps servo angle between bounds.
    */
@@ -93,39 +126,6 @@ private:
     // Interior
     else {
       idx_ += dir_ - (1-dir_);
-    }
-  }
-
-  /** Convolution operator
-   * 
-   * @param Signal[READ_LENGTH]
-   * @param Kernel[READ_LENGTH]
-   * @param Result[READ_LENGTH*2-1]
-   *
-   * @post Result contains the convolution of 
-   *       Signal and Kernel
-   * 
-   * Code via: http://stackoverflow.com/questions/8424170/1d-linear-convolution-in-ansi-c-code
-   */
-  void convolve(const bool Signal[],
-                const bool Kernel[],
-                int Result[])
-  {
-    unsigned long n;
-
-    for (n = 0; n < READ_LENGTH + READ_LENGTH - 1; n++)
-    {
-      unsigned long kmin, kmax, k;
-
-      Result[n] = 0;
-
-      kmin = (n >= READ_LENGTH - 1) ? n - (READ_LENGTH - 1) : 0;
-      kmax = (n < READ_LENGTH - 1) ? n : READ_LENGTH - 1;
-
-      for (k = kmin; k <= kmax; k++)
-      {
-        Result[n] += Signal[k] * Kernel[n - k];
-      }
     }
   }
 
@@ -171,7 +171,8 @@ public:
     }
 
     // Update servo set point to angle
-    setServoAngle(idx_*180/READ_LENGTH);
+    setServoAngle(idx2deg(idx_));
+
     // DEBUG -- print to serial
     Serial.print("[");
     Serial.print(idx_);
@@ -186,6 +187,34 @@ public:
     scanning_   = 1;
     scan_start_ = 1;
     idx_        = 0;
+  }
+
+  /** Returns approximate heading
+   *  based on sensor scan
+   * 
+   * return heading in [0,360]
+   * return -1 if estimate unreliable
+   */
+  int getHeading() {
+    // Convolve current read against master
+    convolve(read_master_,read_current_,read_conv_);
+    // Compute maximal element
+    unsigned long sum = read_conv_[0];
+    unsigned long ind = 0;
+    for (unsigned long i=1; i<(READ_LENGTH*2-1); ++i) {
+      if (read_conv_[i]>read_conv_[ind]) {
+        ind = i;
+      }
+      sum += read_conv_[i];
+    }
+    // Check sum for valid signal strength
+    if (sum<CONV_THRESH) {
+      return -1;
+    }
+    // Compute heading
+    else {
+      return fixAngle(idx2deg(READ_LENGTH-ind));
+    }
   }
 
   /** Returns the current scan
