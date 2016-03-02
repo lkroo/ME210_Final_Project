@@ -7,9 +7,8 @@
 #define READ_PIN 5
 #define CONV_THRESH 1 // Threshold for a valid signal sweep
 #define idx2deg(idx) idx*180/READ_LENGTH // convert id to angle
-// ???
-#define ANALOG_PIN 3
-
+// Servo Handling
+#define servoOffsetAngle 11
 //
 // FUNCTIONS
 //
@@ -22,15 +21,17 @@
  */
 void setServoAngle(unsigned int angle){
   //Input an angle between 0 and 180 as an unsigned int
-  OCR1B = 0x0BB8-(angle<<4)+1440;
-  OCR1A = 0x0BB8-(angle<<4)+1820;
+  //Angle is off by 11 degrees
+  unsigned int adjustedAngle = 0;
+  adjustedAngle = angle + servoOffsetAngle;
+  OCR1B = 0x0BB8-(adjustedAngle<<3)-(adjustedAngle<<2)+1080;
+  OCR1A = 0x0BB8-(adjustedAngle<<3)-(adjustedAngle<<2)+1080;
 }
 
 // Serial Functions
 
 /** Reads a string from Serial and
  *  casts it to an integer value
- *  Note: 1500 is neutral 2060 is 180 max
  */
 int ReadSerialInt(void){
   String input = "";
@@ -45,7 +46,6 @@ int ReadSerialInt(void){
   return input.toInt();
 }
 
-
 // Helper functions
 
 /** Convolution operator
@@ -59,8 +59,8 @@ int ReadSerialInt(void){
  * 
  * Code via: http://stackoverflow.com/questions/8424170/1d-linear-convolution-in-ansi-c-code
  */
-void convolve(const short Signal[],
-              const short Kernel[],
+void convolve(const uint8_t Signal[],
+              const uint8_t Kernel[],
               char Result[])
 {
   unsigned long n;
@@ -103,8 +103,8 @@ private:
   unsigned int idx_ = 0;   // angle index
   unsigned long last_ = 0; // last time
   // short read_master_[READ_LENGTH];  // sensor read at heading zero
-  short read_master_[READ_LENGTH] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-  short read_current_[READ_LENGTH]; // current sensor read
+  uint8_t read_master_[READ_LENGTH];
+  uint8_t read_current_[READ_LENGTH]; // current sensor read
   char read_conv_[READ_LENGTH*2-1]; // convolved readings
   bool scanning_ = 0;     // currently scanning?
   bool valid_read_ = 0;   // 
@@ -132,8 +132,20 @@ private:
 public:
   /** Public constructor
    */
-  BeaconSensor() {
+  BeaconSensor(int my_case) {
     // TODO -- Initialize read_master_
+    switch (my_case) {
+      case 1: // DEBUG MAP -- single beacon
+        for (int i=0; i<READ_LENGTH-1; ++i) {
+          if ((i>=57) or (i<=83)) {
+            read_master_[i] = 1;
+          }
+          else {
+            read_master_[i] = 0;
+          }
+        }
+      break;
+    }
   }
 
   /** Drives sweeps servo between angle bounds
@@ -234,7 +246,7 @@ public:
 
   /** Returns the current scan
    */
-  short* getInfo() {
+  uint8_t* getInfo() {
     return read_current_;
   }
 
@@ -269,7 +281,7 @@ unsigned long current_time = 0;
 
 
 // Beacon Sensor
-BeaconSensor bSensor;
+BeaconSensor bSensor(1); // debug case
 
 // 
 // SETUP
@@ -286,10 +298,10 @@ void setup() {
   
   // Servo Code
   pinMode(9, OUTPUT);
-  ICR1   = 0x1000;//Set max counter value to 1024 in hex
+  ICR1   = 0x1800;
   TCCR1A = 0b10100010;
   TCCR1B = 0b00011010;
-  OCR1A = 0x0200;
+  OCR1A = 0x0BB8;
 }
 
 // 
