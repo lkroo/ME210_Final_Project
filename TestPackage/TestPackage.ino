@@ -171,19 +171,22 @@ unsigned char respLineAlign(void){
     Serial.println(trigger, HEX);
     switch(trigger){
       //if the center has hit the line, then bot rotates clockwise
-      case(VALline00C0): botRotate(10); break; 
-      case(VALline0LC0): botRotate(10); break;
-      case(VALline0LCR): botRotate(10); break;
-      case(VALline00CR): botRotate(10); break; 
-           
-      case(VALline000R): motorRForward(); motorLForward(); break;
-      case(VALline0L00): motorRForward(); motorLForward(); break;          
-      case(VALlineFL0R): motorRForward(); motorLForward(); break;
-      case(VALlineF00R): motorRForward(); motorLForward(); break;
-      case(VALlineFL00): motorRForward(); motorLForward(); break;
-      case(VALline0L0R): motorRForward(); motorLForward(); break;
-      case(VALlineF000): motorRForward(); motorLForward(); break;
+      case(VALline00C0): botRotate(-10); break; 
+      case(VALline0LC0): botRotate(-10); break;
+      case(VALline0LCR): botRotate(-10); break;
+      case(VALline00CR): botRotate(-10); break; 
+
       case(VALline0000): motorRForward(); motorLForward(); break;
+      case(VALlineF000): motorRForward(); motorLForward(); break;
+           
+      case(VALline000R): botRotate(-10); break;
+      case(VALline0L00): botRotate(-10); break;
+      case(VALline0L0R): botRotate(-10); break;
+
+      case(VALlineFL0R): stopDriveMotors(); Serial.println("Center Sensor Error"); break;
+      case(VALlineF00R): motorLForward(); break;
+      case(VALlineFL00): motorRForward();break;
+      
 
       //if center and front are true, then we're aligned
       case(VALlineF0C0): stopDriveMotors(); Serial.println("DONE"); return 1; break;
@@ -791,8 +794,6 @@ void loop() {
 
  // handle line following
  if (!alignment) {
-    if (current_time-drive_time < 5000) {
-      if (testForLine()) alignment = respLineAlign();
-    } 
+    alignment = respLineAlign();
   }
  }
