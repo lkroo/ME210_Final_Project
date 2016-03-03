@@ -143,7 +143,7 @@ void botRotate(signed long deg){
       digitalWrite(MOTOR_DIR_L, HIGH);
       digitalWrite(MOTOR_DIR_R, LOW);
     }
-    Serial.println(currentTime(startTime));
+    //Serial.println(currentTime(startTime));
   }
   digitalWrite(MOTOR_POW_L, LOW);
   digitalWrite(MOTOR_POW_R, LOW);
@@ -169,7 +169,7 @@ unsigned char testForLine(void){
   lightValC = analogRead(PINlineSenseC);
   lightValL = analogRead(PINlineSenseL);
   
-  trigger = ((lightValF >= VALlightTopThreshold)<<8)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
+  trigger = ((lightValF >= VALlightTopThreshold)<<6)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
   
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
   if (trigger != lastTrigger) {
@@ -302,7 +302,7 @@ int ReadSerialInt(void){
       // and add it to the string:
       input += (char)inChar;
     } 
-    else if (inChar == "-"){
+    else if (inChar == '-'){
       signFlag = -1;
     }
   }
@@ -813,13 +813,16 @@ void loop() {
   // flywheel upkeep
   setFlyWheelSpeed(flyWheelSpeed);
 
- unsigned int analogVal = 112;
- unsigned int flyWheelSpeed = 0;
- char inputChar;
- //Serial.println(otherVal);
+  // Line Following upkeep
+  testForLine();
 
- // handle line following
- if (!alignment) {
+  unsigned int analogVal = 112;
+  unsigned int flyWheelSpeed = 0;
+  char inputChar;
+  //Serial.println(otherVal);
+
+  // handle line following
+  if (!alignment) {
     alignment = respLineAlign();
   }
- }
+}
