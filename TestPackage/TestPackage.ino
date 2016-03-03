@@ -79,12 +79,14 @@ static unsigned char VARsharedByte;
 void motorLForward(void){
     digitalWrite(MOTOR_DIR_L  , HIGH);    
     TCCR1A = TCCR1A | 0b00100000;
-    OCR1B = 0x138b; 
+    OCR1B = 1333;
+//    OCR1B = 0x138b; 
 }
 void motorRForward(void){
   digitalWrite(MOTOR_DIR_R, HIGH);         
   TCCR2A = TCCR2A | 0b10000000;
-  OCR2A = 0xd8;
+//  OCR2A = 0xd8;
+OCR2A = 0xcd;
 }
 
 void motorLBack(void){
@@ -150,7 +152,18 @@ unsigned char testForLine(void){
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
   if (trigger != lastTrigger) {
     setSharedInfoTo(trigger);
-    Serial.println("line detected!");
+    Serial.print("line Info:");
+    Serial.print(lastTrigger,BIN);
+    Serial.print(",");
+    Serial.print(trigger, BIN);
+    Serial.print(",");
+    Serial.print(lightValF,DEC);
+    Serial.print(",");
+    Serial.print(lightValL,DEC);
+    Serial.print(",");
+    Serial.print(lightValC,DEC);
+    Serial.print(",");
+    Serial.print(lightValR,DEC);
   }
   lastTrigger = trigger;
   return EventOccurred;
@@ -728,6 +741,7 @@ void RespToKey(void) {
 
 /*---------------Main Loop-----------------*/
 void loop() {
+  int lineEvent;
  
   // Grab the current time
   current_time = millis();
@@ -747,9 +761,8 @@ void loop() {
  //Serial.println(otherVal);
 
  // handle line following
+ lineEvent = testForLine();
  if (!alignment) {
-    if (current_time-drive_time < 5000) {
-      if (testForLine()) alignment = respLineAlign();
-    } 
+      if (lineEvent) alignment = respLineAlign();
   }
  }
