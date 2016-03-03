@@ -64,6 +64,9 @@ Commands:
 #define VALlineFLC0 0x14
 #define VALlineFLCR 0x15
 
+#define motorLSpeed 0x138b
+#define motorRSpeed 0xd8
+
 // BEACON SENSING
 #define READ_LENGTH 180
 #define READ_TIME 20  // Time for short move
@@ -77,25 +80,46 @@ Commands:
 static unsigned char VARsharedByte;
     
 void motorLForward(void){
+  if (digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000))){
+    return;
+  }
+  else {
     digitalWrite(MOTOR_DIR_L  , HIGH);    
     TCCR1A = TCCR1A | 0b00100000;
-    OCR1B = 0x138b; 
+    OCR1B = motorLSpeed;
+    return;
+  }
 }
 void motorRForward(void){
-  digitalWrite(MOTOR_DIR_R, HIGH);         
-  TCCR2A = TCCR2A | 0b10000000;
-  OCR2A = 0xd8;
+  if (digitalRead(MOTOR_DIR_R) && ((OCR2A == motorRSpeed) && (TCCR2A & 0b10000000))){
+    return;
+  }
+  else {
+    digitalWrite(MOTOR_DIR_R, HIGH);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed;
+  }
 }
 
 void motorLBack(void){
+  if (!digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000))){
+    return;
+  }
+  else {
     digitalWrite(MOTOR_DIR_L  , LOW);    
     TCCR1A = TCCR1A | 0b00100000;
-    OCR1B = 0x138b; 
+    OCR1B = motorLSpeed;
+  }
 }
 void motorRBack(void){
-  digitalWrite(MOTOR_DIR_R, LOW);         
-  TCCR2A = TCCR2A | 0b10000000;
-  OCR2A = 0xd8;
+  if (!digitalRead(MOTOR_DIR_R) && ((OCR2A == motorRSpeed) && (TCCR2A & 0b10000000))){
+    return;
+  }
+  else {
+    digitalWrite(MOTOR_DIR_R, LOW);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed;
+  }
 }
 
 void stopDriveMotors(void){
@@ -185,7 +209,7 @@ unsigned char respLineAlign(void){
 
       case(VALlineFL0R): stopDriveMotors(); Serial.println("Center Sensor Error"); break;
       case(VALlineF00R): motorLForward(); break;
-      case(VALlineFL00): motorRForward();break;
+      case(VALlineFL00): motorRForward(); break;
       
 
       //if center and front are true, then we're aligned
@@ -270,12 +294,16 @@ void setServoAngle(unsigned int angle){
  */
 int ReadSerialInt(void){
   String input = "";
+  short signFlag = 1;
   while (Serial.available()>0){
     int inChar = Serial.read();
     if (isDigit(inChar)) {
       // convert the incoming byte to a char
       // and add it to the string:
       input += (char)inChar;
+    } 
+    else if (inChar == "-"){
+      signFlag = -1;
     }
   }
   return input.toInt();
