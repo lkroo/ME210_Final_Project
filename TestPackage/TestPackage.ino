@@ -72,7 +72,7 @@ Commands:
 
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
-#define VALlightTopThreshold 300
+#define VALlightTopThreshold 500
 
 static unsigned char VARsharedByte;
     
@@ -147,7 +147,7 @@ unsigned char testForLine(void){
   lightValC = analogRead(PINlineSenseC);
   lightValL = analogRead(PINlineSenseL);
   
-  trigger = ((lightValF >= VALlightTopThreshold)<<8)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
+  trigger = ((lightValF >= VALlightTopThreshold)<<6)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
   
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
   if (trigger != lastTrigger) {
@@ -163,7 +163,7 @@ unsigned char testForLine(void){
     Serial.print(",");
     Serial.print(lightValC,DEC);
     Serial.print(",");
-    Serial.print(lightValR,DEC);
+    Serial.println(lightValR,DEC);
   }
   lastTrigger = trigger;
   return EventOccurred;
@@ -181,7 +181,6 @@ unsigned char getSharedByte(void){
 unsigned char respLineAlign(void){
     unsigned char trigger;
     trigger = getSharedByte();
-    Serial.println(trigger, HEX);
     switch(trigger){
       //if the center has hit the line, then bot rotates clockwise
       case(VALline00C0): botRotate(10); break; 
