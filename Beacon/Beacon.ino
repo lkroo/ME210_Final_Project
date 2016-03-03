@@ -6,9 +6,9 @@
 #define READ_TIME 20  // Time for short move
 #define READ_PIN 5
 #define CONV_THRESH 1 // Threshold for a valid signal sweep
-#define idx2deg(idx) idx*180/READ_LENGTH // convert id to angle
+#define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
 // Servo Handling
-#define servoOffsetAngle 11
+#define SERVO_OFFSET_ANGLE 11
 //
 // FUNCTIONS
 //
@@ -23,7 +23,7 @@ void setServoAngle(unsigned int angle){
   //Input an angle between 0 and 180 as an unsigned int
   //Angle is off by 11 degrees
   unsigned int adjustedAngle = 0;
-  adjustedAngle = angle + servoOffsetAngle;
+  adjustedAngle = angle + SERVO_OFFSET_ANGLE;
   OCR1B = 0x0BB8-(adjustedAngle<<3)-(adjustedAngle<<2)+1080;
   OCR1A = 0x0BB8-(adjustedAngle<<3)-(adjustedAngle<<2)+1080;
 }
@@ -195,7 +195,7 @@ public:
     }
 
     // Update servo set point to angle
-    setServoAngle(idx2deg(idx_));
+    setServoAngle(IDX2DEG(idx_));
 
     // DEBUG -- print to serial
     // Serial.print("[");
@@ -210,6 +210,15 @@ public:
   void findBeacons() {
     scanning_   = 1;
     scan_start_ = 1;
+  }
+
+  /** Set new servo setpoint;
+   *  overrides other rotation behavior
+   */
+  void setAngle(unsigned int angle) {
+    idx_ = angle / READ_LENGTH;
+    scanning_ = 0;
+    scan_start_ = 0;
   }
 
   /** Returns approximate heading
@@ -240,7 +249,7 @@ public:
     }
     // Compute heading
     else {
-      return fixAngle(idx2deg(READ_LENGTH-ind));
+      return fixAngle(IDX2DEG(READ_LENGTH-ind));
     }
   }
 
@@ -327,4 +336,3 @@ void loop() {
     }
   }
 }
-
