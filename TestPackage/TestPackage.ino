@@ -379,15 +379,60 @@ public:
   BeaconSensor(int my_case) {
     // TODO -- Collect sensor readings at critical field positions
     switch (my_case) {
-      case 1: // DEBUG MAP -- single beacon
+      // case 1: // DEBUG MAP -- single beacon
+      //   for (int i=0; i<READ_LENGTH-1; ++i) {
+      //     if ((i>=21) or (i<=124)) {
+      //       read_master_[i] = 1;
+      //     }
+      //     else {
+      //       read_master_[i] = 0;
+      //     }
+      //   }
+      // break;
+      case 1: // Corner Map
         for (int i=0; i<READ_LENGTH-1; ++i) {
-          if ((i>=57) or (i<=83)) {
-            read_master_[i] = 1;
-          }
-          else {
-            read_master_[i] = 0;
-          }
+          read_master_[i] = 0;
         }
+        read_master_[32] = 1;
+        read_master_[33] = 1;
+        read_master_[34] = 1;
+        read_master_[35] = 1;
+        read_master_[36] = 1;
+
+        read_master_[40] = 1;
+        read_master_[41] = 1;
+        read_master_[42] = 1;
+        read_master_[43] = 1;
+        read_master_[44] = 1;
+        read_master_[45] = 1;
+        read_master_[46] = 1;
+
+        read_master_[52] = 1;
+        read_master_[53] = 1;
+        read_master_[54] = 1;
+        read_master_[55] = 1;
+        read_master_[56] = 1;
+        read_master_[57] = 1;
+        read_master_[58] = 1;
+        read_master_[59] = 1;
+
+        read_master_[70] = 1;
+        read_master_[71] = 1;
+        read_master_[72] = 1;
+        read_master_[73] = 1;
+        read_master_[74] = 1;
+
+        read_master_[91] = 1;
+        read_master_[92] = 1;
+        read_master_[93] = 1;
+        read_master_[94] = 1;
+        read_master_[95] = 1;
+        read_master_[96] = 1;
+        read_master_[97] = 1;
+        read_master_[98] = 1;
+        read_master_[99] = 1;
+        read_master_[100] = 1;
+        read_master_[101] = 1;
       break;
     }
   }
@@ -425,7 +470,7 @@ public:
           Serial.print(read_current_[idx_]);
           Serial.println("]");
 
-          // Sweep the servo idx_
+          // Sweep the servo idx_\
           sweepAngle();
           // Reset timer
           last_ = millis();
