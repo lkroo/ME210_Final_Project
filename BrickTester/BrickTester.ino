@@ -510,12 +510,16 @@ public:
 // THOSE WHO TRESPASS AGAINST US.
 uint8_t my_case = 1;
 unsigned long current_time = 0;
+
 // Beacon Sensor Object
-BeaconSensor bSensor; // debug case
-// Flywheel speed
-Shooter shooter();
+BeaconSensor bSensor; // create new object
+
+// Shooter Object
+Shooter shooter(); // create new object
+
 // Robot absolute heading
 int bot_angle;
+
 // Driving 
 unsigned long drive_time1 = 0;
 
@@ -548,7 +552,7 @@ void setup() {
 
   // Shooter Code
   pinMode(SOLENOID, OUTPUT);
-  pinMOde(FLYWHEEL, OUTPUT);
+  pinMode(FLYWHEEL, OUTPUT);
 }
 
 // 
@@ -557,11 +561,13 @@ void setup() {
 void loop() {
     // Update main timer
     current_time = millis();
+    
     // Check for game end
     if (current_time > GAME_TIME) {
         my_case = 13; // disable robot
     }
-    // Run upkeep
+    
+    //////////////  Run upkeep  /////////////////
     else {
         // Beacon Sensor upkeep
         bSensor.beaconUpkeep(current_time);
@@ -571,6 +577,11 @@ void loop() {
 
         // Line Following upkeep
          testForLine();
+
+        // handle line following
+          if (!alignment) {
+              alignment = respLineAlign();
+           }
     }
     // Run main loop logic
     switch my_case:
