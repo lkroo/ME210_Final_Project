@@ -77,6 +77,10 @@ Commands:
 #define SERVO_OFFSET_ANGLE 11
 #define VALlightTopThreshold 400
 
+// SHOOTING
+// required flywheel speed proportion to take a shot
+#define SPEED_ERROR_THRESH 0.1
+
 static unsigned char VARsharedByte;
     
 void motorLForward(void){
@@ -362,6 +366,69 @@ int fixAngle(int angle) {
 // CLASSES
 // 
 
+class Shooter {
+private:
+  unsigned int speed_ = 0;
+  uint8_t shooting   = 0;
+  int speed_error    = 0;
+  uint8_t shots_left = 7;
+
+public:
+  /** Upkeep function for shooter
+   *  Drives flywheel to velocity setpoint,
+   *  handles shot logic
+   */
+  void shooterUpkeep(unsigned long time) {
+    // Set the flywheel speed
+    speed_error = setFlyWheelSpeed(speed_);
+    // Take a shot if able
+    if (shooting && 
+        (abs(speed_error) < speed_*SPEED_ERROR_THRESH)) {
+      // TODO -- FIX BLOCKING CODE!
+      digitalWrite(SOLENOID, HIGH);
+      delay(200);
+      digitalWrite(SOLENOID, LOW);
+      // Clear shot flag
+      shooting = 0;
+      // TODO -- Use the clip sensor to determine
+      //         if the shot was successful
+      // DEBUG -- Assume the shot worked
+      --shots_left;
+    }
+  }
+
+  /** Tells shooter to take a shot at a 
+   *  prescribed flywheel speed
+   * 
+   * @param set_speed Desired flywheel speed
+   *                  for shot
+   */
+  void shoot(unsigned int set_speed) {
+    speed_ = set_speed;
+    shooting = 1;
+  }
+
+  /** Returns the number of shots left
+   *  in our magazine
+   */
+  uint8_t shotsLeft() {
+    return shots_left;
+  }
+
+  /** DEBUG -- Set flywheel speed setpoint
+   */
+  void setSpeed(unsigned int set_speed) {
+    speed_ = set_speed;
+    shooting = 0;
+  }
+
+  /** DEBUG -- Get flywheel speed setpoint
+   */
+  unsigned int getSpeed() {
+    return speed_;
+  }
+};
+
 class BeaconSensor {
 private:
   bool dir_  = 1; // slew direction; 0->neg, 1->pos
@@ -599,7 +666,7 @@ void setFlyWheelPower(unsigned int motorPower){
   }
 }
 
-void setFlyWheelSpeed(unsigned int Speed){
+int setFlyWheelSpeed(unsigned int Speed){
   //Speed in arbitary units where 200 is medium fast and 400 is very very fast
   //Don't go over 400
   unsigned int currentSpeed;
@@ -618,6 +685,7 @@ void setFlyWheelSpeed(unsigned int Speed){
   //Serial.print(",");
   //Serial.println(currentSpeed);
   setFlyWheelPower(speedError);
+  return speedError;
 }
 
 unsigned int getMotorSpeed(void){
@@ -632,7 +700,7 @@ unsigned int getMotorSpeed(void){
 unsigned long current_time = 0;
 // Beacon Sensor Object
 BeaconSensor bSensor;
-unsigned int flyWheelSpeed =0;
+Shooter shooter;
 // Drive timer
 unsigned long drive_time = 0;
 int alignment = 1;
@@ -701,13 +769,23 @@ void RespToKey(void) {
   Serial.println("");
   
   switch (theKey) {
-    case 'F':
+    case 'L': {
+      // TAKE A SHOT!
+      Serial.print("Taking a shot at speed=");
+      unsigned int speed = ReadSerialInt();
+      Serial.println(speed);
+      shooter.shoot(speed);
+    }
+    
+    case 'F': {
       // SET FLYWHEEL SPEED
       // This function sets the flywheel speed. It is triggered by an input to the serial monitor of the form "F100", where the F tells the program to set the flywheel and the int tells us the speed on a map from 0 to 256 (for example).
       // Responsible: George Herring
       Serial.println("Modifying Motor Speed");
-      flyWheelSpeed = ReadSerialInt();
-      Serial.println(flyWheelSpeed);
+      unsigned int speed = ReadSerialInt();
+      shooter.setSpeed(speed);
+      Serial.println(speed);
+    }
       
       break;
       
@@ -814,13 +892,12 @@ void loop() {
   bSensor.beaconUpkeep(current_time);
 
   // flywheel upkeep
-  setFlyWheelSpeed(flyWheelSpeed);
+  shooter.shooterUpkeep(current_time);
 
   // Line Following upkeep
   testForLine();
 
   unsigned int analogVal = 112;
-  unsigned int flyWheelSpeed = 0;
   char inputChar;
   //Serial.println(otherVal);
 

@@ -1,12 +1,12 @@
-/*---------Compiler Definitions--------------*/
-#define GAME_TIME 120000 // 2 minutes in ms
+/*------ COMPILER DEFINITIONS --------*/
 // ANALOG SENSORS
-#define CLIP_SENSE        A0 // clip sensor
-#define LINE_BACK_SENSE   A1 // back line sensor
-#define LINE_RIGHT_SENSE  A2 // right line sensor
-#define LINE_CENTER_SENSE A3 // center line sensor
-#define LINE_LEFT_SENSE   A4 // left line sensor
-#define FLYWHEEL_SENSE    A5 // Flywheel speed sensor
+#define PINclipSense   A0 // clip sensor
+#define PINlineSenseF  A1 // back line sensor
+#define PINlineSenseR  A2 // right line sensor
+#define PINlineSenseC  A3 // center line sensor
+#define PINlineSenseL  A4 // left line sensor
+#define FLYWHEEL_SENSE A5 // Flywheel speed sensor
+
 // DIGITAL PINS
 #define SOLENOID       2 // 
 #define FLYWHEEL       3 // 
@@ -17,30 +17,42 @@
 #define MOTOR_POW_R   11 // controlled by OC2A
 #define MOTOR_DIR_L   12 // 1 = forward, 0 = back
 #define MOTOR_DIR_R   13 // 1 = forward, 0 = back
-//LINE SENSOR HEX VALUES - hex value summarizing status of line followers //STICK INTO RESPFN
+
+//LINE SENSOR HEX VALUES - hex value summarizing status of line followers 
 #define VALline0000 0x00
 #define VALline000R 0x01
-#define VALline00C0 0x02
-#define VALline00CR 0x03
-#define VALline0L00 0x04
-#define VALline0L0R 0x05
-#define VALline0LC0 0x06
-#define VALline0LCR 0x07
-#define VALlineF000 0x08
-#define VALlineF00R 0x09
-#define VALlineF0C0 0x10
-#define VALlineF0CR 0x11
-#define VALlineFL00 0x12
-#define VALlineFL0R 0x13
-#define VALlineFLC0 0x14
-#define VALlineFLCR 0x15
+#define VALline00C0 0x04
+#define VALline00CR 0x05
+#define VALline0L00 0x10
+#define VALline0L0R 0x11
+#define VALline0LC0 0x14
+#define VALline0LCR 0x15
+#define VALlineF000 0x40
+#define VALlineF00R 0x41
+#define VALlineF0C0 0x44
+#define VALlineF0CR 0x45
+#define VALlineFL00 0x50
+#define VALlineFL0R 0x51
+#define VALlineFLC0 0x54
+#define VALlineFLCR 0x55
+
+#define motorLSpeed 0x138b
+#define motorRSpeed 0xd8
+
 // BEACON SENSING
 #define READ_LENGTH 180
 #define READ_TIME 20  // Time for short move
 #define CONV_THRESH 1 // Threshold for a valid signal sweep
 #define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
+
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
+#define VALlightTopThreshold 300
+// SHOOTING
+// required flywheel speed proportion to take a shot
+#define SPEED_ERROR_THRESH 0.1
+
+/*-------- LOGIC DEFINITIONS --------*/
 // Dead-Reckoning angles (degrees)
 #define DEAD_ANGLE_1 0
 #define DEAD_ANGLE_2 90
@@ -213,19 +225,82 @@ int fixAngle(int angle) {
 // CLASSES
 // 
 
+class Shooter {
+private:
+  unsigned int speed = 0;
+  uint8_t shooting   = 0;
+  int speed_error    = 0;
+  uint8_t shots_left = 7;
+
+public:
+  /** Upkeep function for shooter
+   *  Drives flywheel to velocity setpoint,
+   *  handles shot logic
+   */
+  void shooterUpkeep(unsigned long time) {
+    // Set the flywheel speed
+    speed_error = setFlyWheelSpeed(speed);
+    // Take a shot if able
+    if (shooting && 
+        (abs(speed_error) < speed*SPEED_ERROR_THRESH)) {
+      // TODO -- FIX BLOCKING CODE!
+      digitalWrite(SOLENOID, HIGH);
+      delay(200);
+      digitalWrite(SOLENOID, LOW);
+      // Clear shot flag
+      shooting = 0;
+      // TODO -- Use the clip sensor to determine
+      //         if the shot was successful
+      // DEBUG -- Assume the shot worked
+      --shots_left;
+    }
+  }
+
+  /** Tells shooter to take a shot at a 
+   *  prescribed flywheel speed
+   * 
+   * @param set_speed Desired flywheel speed
+   *                  for shot
+   */
+  void shoot(unsigned int set_speed) {
+    speed = set_speed;
+    shooting = 1;
+  }
+
+  /** Returns the number of shots left
+   *  in our magazine
+   */
+  uint8_t shotsLeft() {
+    return shots_left;
+  }
+
+  /** DEBUG -- Set flywheel speed setpoint
+   */
+  void setSpeed(unsigned int set_speed) {
+    speed = set_speed;
+  }
+
+  /** DEBUG -- Get flywheel speed setpoint
+   */
+  unsigned int getSpeed() {
+    return speed;
+  }
+};
+
 class BeaconSensor {
 private:
   bool dir_  = 1; // slew direction; 0->neg, 1->pos
   bool slew_ = 0; // 
-  unsigned int idx_ = 0;   // angle index
+  unsigned int idx_ = 90 * 180/READ_LENGTH;   // angle index
   unsigned long last_ = 0; // last time
-  uint8_t read_master_[READ_LENGTH];  // Corner
-  uint8_t read_master2_[READ_LENGTH]; // Shooting zone
+  // short read_master_[READ_LENGTH];  // sensor read at heading zero
+  uint8_t read_master_[READ_LENGTH];  // Right corner
+  uint8_t read_master2_[READ_LENGTH]; // Center
   uint8_t read_current_[READ_LENGTH]; // current sensor read
   char read_conv_[READ_LENGTH*2-1]; // convolved readings
-  bool scanning_ = 0;     // currently scanning
-  bool valid_read_ = 0;   // read data is valid
-  bool scan_start_ = 0;   // scan just started
+  bool scanning_ = 0;     // currently scanning?
+  bool valid_read_ = 0;   // 
+  bool scan_start_ = 0;   // 
 
   /** Sweeps servo angle between bounds.
    */
@@ -251,30 +326,53 @@ public:
    */
   BeaconSensor() {
     // TODO -- Collect sensor readings at critical field positions
-    // Corner map
     for (int i=0; i<READ_LENGTH-1; ++i) {
-      if ((i>=57) or (i<=83)) {
-        read_master_[i] = 1;
-      }
-      else {
-        read_master_[i] = 0;
-      }
-    }
-    // Shooting map
-    for (int i=0; i<READ_LENGTH-1; ++i) {
-      if ((i>=57) or (i<=83)) {
-        read_master2_[i] = 1;
-      }
-      else {
-        read_master2_[i] = 0;
-      }
-    }
+              read_master_[i] = 0;
+            }
+    read_master_[32] = 1;
+    read_master_[33] = 1;
+    read_master_[34] = 1;
+    read_master_[35] = 1;
+    read_master_[36] = 1;
+
+    read_master_[40] = 1;
+    read_master_[41] = 1;
+    read_master_[42] = 1;
+    read_master_[43] = 1;
+    read_master_[44] = 1;
+    read_master_[45] = 1;
+    read_master_[46] = 1;
+
+    read_master_[52] = 1;
+    read_master_[53] = 1;
+    read_master_[54] = 1;
+    read_master_[55] = 1;
+    read_master_[56] = 1;
+    read_master_[57] = 1;
+    read_master_[58] = 1;
+    read_master_[59] = 1;
+
+    read_master_[70] = 1;
+    read_master_[71] = 1;
+    read_master_[72] = 1;
+    read_master_[73] = 1;
+    read_master_[74] = 1;
+
+    read_master_[91] = 1;
+    read_master_[92] = 1;
+    read_master_[93] = 1;
+    read_master_[94] = 1;
+    read_master_[95] = 1;
+    read_master_[96] = 1;
+    read_master_[97] = 1;
+    read_master_[98] = 1;
+    read_master_[99] = 1;
+    read_master_[100] = 1;
+    read_master_[101] = 1;
   }
 
   /** Drives sweeps servo between angle bounds
    *  and takes beacon sensor measurements.
-   * 
-   * @param time current time from millis()
    */
   void beaconUpkeep(unsigned long time) {
     // No millis() overflow handling...
@@ -315,8 +413,7 @@ public:
       }
       // End scan
       if (idx_==0) {
-        scanning_ = 0;    
-        valid_read_ = 1;  // data is now valid!
+        scanning_ = 0;
       }
     }
 
@@ -328,17 +425,15 @@ public:
   /** Begins a new sensor sweep
    */
   void findBeacons() {
-    if (scanning_==0) {
-      scanning_   = 1;
-      scan_start_ = 1;
-    }
+    scanning_   = 1;
+    scan_start_ = 1;
   }
   
   /** Set new servo setpoint;
    *  overrides other rotation behavior
    */
   void setAngle(unsigned int angle) {
-    idx_ = angle / READ_LENGTH;
+    idx_ = angle * 180 / READ_LENGTH;
     scanning_ = 0;
     scan_start_ = 0;
   }
@@ -350,27 +445,21 @@ public:
    *  axis, as defined in Erica's 
    *  coordinate system
    * 
-   * @param my_case switches the master
-   *        read used for convolution;
-   *        my_case = 0 -> in corner location
-   *        my_case = 1 -> in shooting location
-   *        
-   * @return heading in [0,360]
-   * @return -1 if estimate unreliable
+   * @param my_case switches the convolution kernel
+   *        my_case == 1 center field
+   *        my_case != 1 right corner
+   * 
+   * return heading in [0,360]
+   * return -1 if estimate unreliable
    */
   int getHeading(int my_case) {
     // Convolve current read against master
-    switch (my_case) {
-      // In shooting position
-      case 1:
-        convolve(read_master2_,read_current_,read_conv_);
-        break;
-      // In corner
-      default:
-        convolve(read_master_,read_current_,read_conv_);
-        break;
-      }
-    
+    if (my_case==1) {
+      convolve(read_master2_,read_current_,read_conv_);
+    }
+    else {
+      convolve(read_master_,read_current_,read_conv_);
+    }
     // Compute maximal element
     unsigned long sum = read_conv_[0];
     unsigned long ind = 0;
@@ -422,9 +511,9 @@ public:
 uint8_t my_case = 1;
 unsigned long current_time = 0;
 // Beacon Sensor Object
-BeaconSensor bSensor(1); // debug case
+BeaconSensor bSensor; // debug case
 // Flywheel speed
-unsigned int flyWheelSpeed = 0;
+Shooter shooter();
 // Robot absolute heading
 int bot_angle;
 // Driving 
@@ -505,7 +594,8 @@ void loop() {
             }
             break;
             
-        case 2: // Find Bot Angle at corner
+        case 2: // Find Bot Angle, take shots
+                // on three 
             bot_angle = bSensor.getHeading(0);
             ++my_case;
             break;
