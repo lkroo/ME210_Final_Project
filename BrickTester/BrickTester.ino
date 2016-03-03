@@ -41,6 +41,17 @@
 #define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
+// Dead-Reckoning angles (degrees)
+#define DEAD_ANGLE_1 0
+#define DEAD_ANGLE_2 90
+// Dead-Reckoning times (milliseconds)
+#define DEAD_TIME_1 1000
+// FIRING ANGLES at SHOOTING ZONE (degrees)
+#define SHOOT_ANGLE_1 -35
+#define SHOOT_ANGLE_2 -17
+#define SHOOT_ANGLE_3 0
+#define SHOOT_ANGLE_4 17
+#define SHOOT_ANGLE_5 35
 
 // 
 // FUNCTIONS
@@ -208,13 +219,13 @@ private:
   bool slew_ = 0; // 
   unsigned int idx_ = 0;   // angle index
   unsigned long last_ = 0; // last time
-  // short read_master_[READ_LENGTH];  // sensor read at heading zero
-  uint8_t read_master_[READ_LENGTH];
+  uint8_t read_master_[READ_LENGTH];  // Corner
+  uint8_t read_master2_[READ_LENGTH]; // Shooting zone
   uint8_t read_current_[READ_LENGTH]; // current sensor read
   char read_conv_[READ_LENGTH*2-1]; // convolved readings
-  bool scanning_ = 0;     // currently scanning?
+  bool scanning_ = 0;     // currently scanning
   bool valid_read_ = 0;   // read data is valid
-  bool scan_start_ = 0;   // 
+  bool scan_start_ = 0;   // scan just started
 
   /** Sweeps servo angle between bounds.
    */
@@ -238,24 +249,32 @@ private:
 public:
   /** Public constructor
    */
-  BeaconSensor(int my_case) {
+  BeaconSensor() {
     // TODO -- Collect sensor readings at critical field positions
-    switch (my_case) {
-      case 1: // DEBUG MAP -- single beacon
-        for (int i=0; i<READ_LENGTH-1; ++i) {
-          if ((i>=57) or (i<=83)) {
-            read_master_[i] = 1;
-          }
-          else {
-            read_master_[i] = 0;
-          }
-        }
-      break;
+    // Corner map
+    for (int i=0; i<READ_LENGTH-1; ++i) {
+      if ((i>=57) or (i<=83)) {
+        read_master_[i] = 1;
+      }
+      else {
+        read_master_[i] = 0;
+      }
+    }
+    // Shooting map
+    for (int i=0; i<READ_LENGTH-1; ++i) {
+      if ((i>=57) or (i<=83)) {
+        read_master2_[i] = 1;
+      }
+      else {
+        read_master2_[i] = 0;
+      }
     }
   }
 
   /** Drives sweeps servo between angle bounds
    *  and takes beacon sensor measurements.
+   * 
+   * @param time current time from millis()
    */
   void beaconUpkeep(unsigned long time) {
     // No millis() overflow handling...
@@ -331,12 +350,27 @@ public:
    *  axis, as defined in Erica's 
    *  coordinate system
    * 
-   * return heading in [0,360]
-   * return -1 if estimate unreliable
+   * @param my_case switches the master
+   *        read used for convolution;
+   *        my_case = 0 -> in corner location
+   *        my_case = 1 -> in shooting location
+   *        
+   * @return heading in [0,360]
+   * @return -1 if estimate unreliable
    */
-  int getHeading() {
+  int getHeading(int my_case) {
     // Convolve current read against master
-    convolve(read_master_,read_current_,read_conv_);
+    switch (my_case) {
+      // In shooting position
+      case 1:
+        convolve(read_master2_,read_current_,read_conv_);
+        break;
+      // In corner
+      default:
+        convolve(read_master_,read_current_,read_conv_);
+        break;
+      }
+    
     // Compute maximal element
     unsigned long sum = read_conv_[0];
     unsigned long ind = 0;
@@ -391,31 +425,41 @@ unsigned long current_time = 0;
 BeaconSensor bSensor(1); // debug case
 // Flywheel speed
 unsigned int flyWheelSpeed = 0;
+// Robot absolute heading
+int bot_angle;
+// Driving 
+unsigned long drive_time1 = 0;
 
 // 
 // SETUP
 // 
 void setup() {
+
+  // DEBUG -- SERIAL
   Serial.begin(250000);
+
   // Beacon Code
   pinMode(BEACON1,INPUT); // set up beacon sensor pin
+  pinMode(BEACON2,INPUT);
   
-  // Servo Code
+  // Pivot Servo Code
   pinMode(SERVO_PAN, OUTPUT);
   ICR1   = 0x1800;
   TCCR1A = 0b10100010;
   TCCR1B = 0b00011010;
   OCR1A = 0x0BB8;
   
-    //DriveMotor Code
+  // Drive Motor Code
   pinMode(MOTOR_POW_L, OUTPUT);
   pinMode(MOTOR_DIR_L, OUTPUT); 
-
-
   pinMode(MOTOR_POW_R, OUTPUT);
   pinMode(MOTOR_DIR_R, OUTPUT); 
   TCCR2A = 0b10000011;
-  TCCR2B = 0b00000101; 
+  TCCR2B = 0b00000101;
+
+  // Shooter Code
+  pinMode(SOLENOID, OUTPUT);
+  pinMOde(FLYWHEEL, OUTPUT);
 }
 
 // 
@@ -437,71 +481,105 @@ void loop() {
     }
     // Run main loop logic
     switch my_case:
-        case 1: // initiatingBeaconLocation
+        case 1: // Initiating Beacon Sensor Sweep
             // Take a sensor sweep if we
             // have no valid sensor data
-            if (!bsensor.isValid()) {
-              bsensor.findbeacons();
+            if (!bSensor.isValid()) {
+              bSensor.findbeacons();
             }
             else {
+              // check if sensor reading 
+              // doesn't meet threshold value
               if (false) {
                 // TODO -- Check that sensor
                 // data meets threshold; if
                 // not the beacons are not in
                 // view, and we should rotate
+                bSensor.clear();
+                // botTurn(180);
               }
+              // otherwise, proceed
               else {
                 ++my_case;
               }
             }
             break;
             
-        case 2: // FindingBeaconLocation
-            // - grab the current time (millis)
-            // - call sensor.beaconUpkeep(currentTime) to fill up data array
-            // - when the data array is full (length == 180), case ++
-
-        case 3: // findingBotOrientation
-            // - define a desired orientation (signed int) 
-            // - get current orientation by calling bsensor.getHeading()
-            // - turnAngle = desiredOrientation - currentOrientation;
-            // - delete bsensor object (for memory happiness)
-            // - case ++
+        case 2: // Find Bot Angle at corner
+            bot_angle = bSensor.getHeading(0);
+            ++my_case;
+            break;
             
-        case 4: // rotatingBot
-            // - rotate bot by turnAngle
-            // - case++
+        case 3: // Turn to DEAD_ANGLE_1
+            // TODO -- is botRotate() blocking?
+            botRotate(DEAD_ANGLE_1-bot_angle);
+            bSensor.clear(); // data is now invalid
+            ++my_case;
+            break;
 
-        case 5: // goToCenterlineTape
-            // - begin moving forward (in a straight line)
-            // - When front line sensor sees a line, stop and case ++
+        case 4: // Drive forward for DEAD_TIME_1
+            if (drive_time1==0) {
+              drive_time1 = millis();
+              // TODO // botForward();
+            }
+            else if (current_time - drive_time1 > DEAD_TIME_1) {
+              // Reset driver timer
+              drive_time1 = 0;
+              // TODO // botStop();
+              ++my_case;
+            }
+            break;
 
-        case 6: // AlignBot
-            // -initialize timer
-            // - follow the centerline by first turning CW
-            // - use line following scheme to move forward
-            // - when timer runs out, stop and case ++
-        
-        case 7: // backingUpToFiringPosition
-            // - follow the centerline while moving backward (line following scheme BACKWARDS)
-            // - when the 3 back line sensors simultaneously trigger, stop motion.
-            // - initialize timer
-            // - move straight forward until timer expires. Then stop. (this is to ensure the ENTIRE robot is outside of the reloading zone)
-            // - case ++
+        case 5: // Turn to DEAD_ANGLE_2
+            // TODO -- is botRotate() blocking?
+            botRotate(DEAD_ANGLE_2);
+            ++my_case;
+            break;
 
-        case 8: // initializeTargeting
-            // - set park flag to true (IF clip is full)
-            // - grab the current time (millis)
-            // - call sensor.beaconUpkeep(currentTime) to fill up data array
-            // - when the data array is full (length == 180), case ++
+        case 6: // Drive until line intercept
+            if (/*---Sensor Not Triggered---*/) {
+              // TODO // botForward();
+            }
+            else {
+              ++my_case;
+            }
+            break;
+
+        case 7: // Turn CW until front sensor intercept
+            // TODO - does respLineAlign() return 0 
+            // while not aligned?
+            if (!respLineAlign())
+              ++my_case;
+            break;
+
+        case 8: // Line follow until T intersection
+            // TODO - does respLineFollow() return 0
+            // while not in loading zone?
+            if (!respLineFollow()) {
+              ++my_case;
+            }
+            break;
 
         case 9: // targeting
             // - define an expected orientation (0 deg)  and EXPECTED beacon pattern
             // - get current orientation by calling bsensor.getHeading()
             // - define orientationOffset = expected - current orientation.
-            // - delete bsensor object
-            // - define an array of 5 integers which define angles of target beacons. ( beaconLocations = Expected + orientationOffset)
+            // - define an array of 5 integers which define angles of target beacons. 
+            //   (beaconLocations = Expected + orientationOffset)
             // - case ++
+
+            // Take a sensor sweep if we
+            // have no valid sensor data
+            if (!bSensor.isValid()) {
+              bSensor.findbeacons();
+            }
+            // We have valid sensor data
+            else {
+              // Compute heading at shooting location
+              bot_angle = bSensor.getHeading(1);
+              ++my_case;
+            }
+            break;
 
         case 10: // firing
             // while clip is NOT empty:
@@ -516,7 +594,7 @@ void loop() {
             // - move forward until 3 line sensors trigger
             // - initialize timer
             // - move straight forward until timer expires. Then stop. (this is to ensure the ENTIRE robot is outside of the reloading zone)
-            // - change to case 8
+            // - change to case 8 (case 9?)
             
         case 13: // GameOver
             // - stop all systems.
