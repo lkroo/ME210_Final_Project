@@ -72,11 +72,9 @@ Commands:
 
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
-
 #define VALlightTopThreshold 300
 
-    
-  static unsigned char VARsharedByte;
+static unsigned char VARsharedByte;
     
 void motorLForward(void){
     digitalWrite(MOTOR_DIR_L  , HIGH);    
@@ -108,31 +106,32 @@ void stopDriveMotors(void){
 void botRotate(signed long deg){
   stopDriveMotors();
   unsigned long startTime = millis();
-  unsigned long finalTime = abs(deg) * 13.3333;
-    while(currentTime(startTime)<finalTime){
-      digitalWrite(MOTOR_POW_L, HIGH);
-      digitalWrite(MOTOR_POW_R, HIGH);
+  unsigned long finalTime = abs(deg) * 9.63;
+  while(currentTime(startTime)<finalTime){
+    digitalWrite(MOTOR_POW_L, HIGH);
+    digitalWrite(MOTOR_POW_R, HIGH);
       
-      if (deg>0){
-        digitalWrite(MOTOR_DIR_L, LOW);
-        digitalWrite(MOTOR_DIR_R, HIGH);
-      }
-      else{
-        digitalWrite(MOTOR_DIR_L, HIGH);
-        digitalWrite(MOTOR_DIR_R, LOW);
-      }
-      Serial.println(currentTime(startTime));
+    if (deg>0){
+      digitalWrite(MOTOR_DIR_L, LOW);
+      digitalWrite(MOTOR_DIR_R, HIGH);
     }
-      digitalWrite(MOTOR_POW_L, LOW);
-      digitalWrite(MOTOR_POW_R, LOW);}
+    else{
+      digitalWrite(MOTOR_DIR_L, HIGH);
+      digitalWrite(MOTOR_DIR_R, LOW);
+    }
+    Serial.println(currentTime(startTime));
+  }
+  digitalWrite(MOTOR_POW_L, LOW);
+  digitalWrite(MOTOR_POW_R, LOW);
+}
 
-  unsigned long currentTime(unsigned long startTime){
+unsigned long currentTime(unsigned long startTime){
   unsigned long timeElapsed = millis() - startTime;
   return timeElapsed;
 }
 
 unsigned char testForLine(void){
-  char EventOccurred;
+  unsigned char EventOccurred;
   unsigned char trigger = 0x00;  //BLCR
   static unsigned char lastTrigger = 0x00; 
     
@@ -146,14 +145,14 @@ unsigned char testForLine(void){
   lightValC = analogRead(PINlineSenseC);
   lightValL = analogRead(PINlineSenseL);
   
-   trigger = ((lightValF > VALlightTopThreshold)<<8)|((lightValL  > VALlightTopThreshold)<<4)|((lightValC >  VALlightTopThreshold)<<2)|(lightValR > VALlightTopThreshold);
+  trigger = ((lightValF >= VALlightTopThreshold)<<8)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
   
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
-  if (EventOccurred) {
+  if (trigger != lastTrigger) {
     setSharedInfoTo(trigger);
-    lastTrigger = trigger;
     Serial.println("line detected!");
   }
+  lastTrigger = trigger;
   return EventOccurred;
 }
 
@@ -664,10 +663,10 @@ void RespToKey(void) {
       break;
       
        case 'G':
-      // Drives the drivetrain foward at a set speed. 
-         motorLForward();
-         motorRForward();
-      break;
+        // Drives the drivetrain foward at a set speed. 
+        motorLForward();
+        motorRForward();
+        break;
       
        case 'I':
       // GO forward and try to align on centerline.
@@ -678,7 +677,7 @@ void RespToKey(void) {
           alignment = 0;
         }
       break;
-      
+
       case 'Z': {
       // go backward via line following
       // Responsible: Erica Chin
