@@ -366,7 +366,8 @@ private:
   unsigned int idx_ = 90 * 180/READ_LENGTH;   // angle index
   unsigned long last_ = 0; // last time
   // short read_master_[READ_LENGTH];  // sensor read at heading zero
-  uint8_t read_master_[READ_LENGTH];
+  uint8_t read_master_[READ_LENGTH];  // Right corner
+  uint8_t read_master2_[READ_LENGTH]; // Center
   uint8_t read_current_[READ_LENGTH]; // current sensor read
   char read_conv_[READ_LENGTH*2-1]; // convolved readings
   bool scanning_ = 0;     // currently scanning?
@@ -395,63 +396,51 @@ private:
 public:
   /** Public constructor
    */
-  BeaconSensor(int my_case) {
+  BeaconSensor() {
     // TODO -- Collect sensor readings at critical field positions
-    switch (my_case) {
-      case 1: // DEBUG MAP -- single beacon
-        // for (int i=0; i<READ_LENGTH-1; ++i) {
-        //   if ((i>=57) or (i<=83)) {
-        //     read_master_[i] = 1;
-        //   }
-        //   else {
-        //     read_master_[i] = 0;
-        //   }
-        // }
-      for (int i=0; i<READ_LENGTH-1; ++i) {
-                read_master_[i] = 0;
-              }
-      read_master_[32] = 1;
-      read_master_[33] = 1;
-      read_master_[34] = 1;
-      read_master_[35] = 1;
-      read_master_[36] = 1;
+    for (int i=0; i<READ_LENGTH-1; ++i) {
+              read_master_[i] = 0;
+            }
+    read_master_[32] = 1;
+    read_master_[33] = 1;
+    read_master_[34] = 1;
+    read_master_[35] = 1;
+    read_master_[36] = 1;
 
-      read_master_[40] = 1;
-      read_master_[41] = 1;
-      read_master_[42] = 1;
-      read_master_[43] = 1;
-      read_master_[44] = 1;
-      read_master_[45] = 1;
-      read_master_[46] = 1;
+    read_master_[40] = 1;
+    read_master_[41] = 1;
+    read_master_[42] = 1;
+    read_master_[43] = 1;
+    read_master_[44] = 1;
+    read_master_[45] = 1;
+    read_master_[46] = 1;
 
-      read_master_[52] = 1;
-      read_master_[53] = 1;
-      read_master_[54] = 1;
-      read_master_[55] = 1;
-      read_master_[56] = 1;
-      read_master_[57] = 1;
-      read_master_[58] = 1;
-      read_master_[59] = 1;
+    read_master_[52] = 1;
+    read_master_[53] = 1;
+    read_master_[54] = 1;
+    read_master_[55] = 1;
+    read_master_[56] = 1;
+    read_master_[57] = 1;
+    read_master_[58] = 1;
+    read_master_[59] = 1;
 
-      read_master_[70] = 1;
-      read_master_[71] = 1;
-      read_master_[72] = 1;
-      read_master_[73] = 1;
-      read_master_[74] = 1;
+    read_master_[70] = 1;
+    read_master_[71] = 1;
+    read_master_[72] = 1;
+    read_master_[73] = 1;
+    read_master_[74] = 1;
 
-      read_master_[91] = 1;
-      read_master_[92] = 1;
-      read_master_[93] = 1;
-      read_master_[94] = 1;
-      read_master_[95] = 1;
-      read_master_[96] = 1;
-      read_master_[97] = 1;
-      read_master_[98] = 1;
-      read_master_[99] = 1;
-      read_master_[100] = 1;
-      read_master_[101] = 1;
-      break;
-    }
+    read_master_[91] = 1;
+    read_master_[92] = 1;
+    read_master_[93] = 1;
+    read_master_[94] = 1;
+    read_master_[95] = 1;
+    read_master_[96] = 1;
+    read_master_[97] = 1;
+    read_master_[98] = 1;
+    read_master_[99] = 1;
+    read_master_[100] = 1;
+    read_master_[101] = 1;
   }
 
   /** Drives sweeps servo between angle bounds
@@ -528,12 +517,21 @@ public:
    *  axis, as defined in Erica's 
    *  coordinate system
    * 
+   * @param my_case switches the convolution kernel
+   *        my_case == 1 center field
+   *        my_case != 1 right corner
+   * 
    * return heading in [0,360]
    * return -1 if estimate unreliable
    */
-  int getHeading() {
+  int getHeading(int my_case) {
     // Convolve current read against master
-    convolve(read_master_,read_current_,read_conv_);
+    if (my_case==1) {
+      convolve(read_master2_,read_current_,read_conv_);
+    }
+    else {
+      convolve(read_master_,read_current_,read_conv_);
+    }
     // Compute maximal element
     unsigned long sum = read_conv_[0];
     unsigned long ind = 0;
@@ -630,7 +628,7 @@ unsigned int getMotorSpeed(void){
 // Timer Code
 unsigned long current_time = 0;
 // Beacon Sensor Object
-BeaconSensor bSensor(1); // debug case
+BeaconSensor bSensor;
 unsigned int flyWheelSpeed =0;
 // Drive timer
 unsigned long drive_time = 0;
@@ -725,7 +723,7 @@ void RespToKey(void) {
       
       case 'H':
       {// Computes the current heading, expects a valid sensor reading available
-      int head = bSensor.getHeading();
+      int head = bSensor.getHeading(ReadSerialInt());
       Serial.print("Heading = ");
       Serial.println(head);}
       break;
