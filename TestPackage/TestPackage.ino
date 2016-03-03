@@ -75,7 +75,7 @@ Commands:
 
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
-#define VALlightTopThreshold 300
+#define VALlightTopThreshold 400
 
 static unsigned char VARsharedByte;
     
@@ -174,8 +174,10 @@ unsigned char testForLine(void){
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
   if (trigger != lastTrigger) {
     setSharedInfoTo(trigger);
-    Serial.print("line detected info:");
-    Serial.print(lastTrigger
+    Serial.print("line detected info; Old Trigger:");
+    Serial.print(lastTrigger, HEX);
+    Serial.print(", New Trigger:");
+    Serial.println(trigger, HEX);
   }
   lastTrigger = trigger;
   return EventOccurred;
