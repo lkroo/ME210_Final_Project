@@ -198,17 +198,17 @@ unsigned char respLineAlign(void){
     //Serial.println(trigger, HEX);
     switch(trigger){
       //if the center has hit the line, then bot rotates clockwise
-      case(VALline00C0): botRotate(-10); break; 
-      case(VALline0LC0): botRotate(-10); break;
-      case(VALline0LCR): botRotate(-10); break;
-      case(VALline00CR): botRotate(-10); break; 
+      case(VALline00C0): botRotate(-20); break; 
+      case(VALline0LC0): botRotate(-20); break;
+      case(VALline0LCR): botRotate(-20); break;
+      case(VALline00CR): botRotate(-20); break; 
 
       case(VALline0000): motorRForward(); motorLForward(); break;
       case(VALlineF000): motorRForward(); motorLForward(); break;
            
-      case(VALline000R): botRotate(-10); break;
-      case(VALline0L00): botRotate(-10); break;
-      case(VALline0L0R): botRotate(-10); break;
+      case(VALline000R): botRotate(-20); break;
+      case(VALline0L00): botRotate(-20); break;
+      case(VALline0L0R): botRotate(-20); break;
 
       case(VALlineFL0R): stopDriveMotors(); Serial.println("Center Sensor Error"); break;
       case(VALlineF00R): motorLForward(); break;
