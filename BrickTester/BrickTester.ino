@@ -565,8 +565,12 @@ void loop() {
     else {
         // Beacon Sensor upkeep
         bSensor.beaconUpkeep(current_time);
-        // Flywheel upkeep
-        setFlyWheelSpeed(flyWheelSpeed);
+        
+        // flywheel upkeep
+        shooter.shooterUpkeep(current_time);
+
+        // Line Following upkeep
+         testForLine();
     }
     // Run main loop logic
     switch my_case:
