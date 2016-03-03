@@ -179,7 +179,7 @@ unsigned char testForLine(void){
   if (trigger != lastTrigger) {
     setSharedInfoTo(trigger);
     Serial.print("line detected info:");
-    Serial.print(lastTrigger
+    Serial.print(lastTrigger);
   }
   lastTrigger = trigger;
   return EventOccurred;
@@ -411,6 +411,18 @@ public:
    */
   uint8_t shotsLeft() {
     return shots_left;
+  }
+
+  /** DEBUG -- Set flywheel speed setpoint
+   */
+  void setSpeed(unsigned int set_speed) {
+    speed = set_speed;
+  }
+
+  /** DEBUG -- Get flywheel speed setpoint
+   */
+  unsigned int getSpeed() {
+    return speed;
   }
 };
 
@@ -759,8 +771,9 @@ void RespToKey(void) {
       // This function sets the flywheel speed. It is triggered by an input to the serial monitor of the form "F100", where the F tells the program to set the flywheel and the int tells us the speed on a map from 0 to 256 (for example).
       // Responsible: George Herring
       Serial.println("Modifying Motor Speed");
-      flyWheelSpeed = ReadSerialInt();
-      Serial.println(flyWheelSpeed);
+      unsigned int speed;
+      shooter.setSpeed(speed);
+      Serial.println(speed);
       
       break;
       
