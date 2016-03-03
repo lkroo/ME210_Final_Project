@@ -75,7 +75,7 @@ Commands:
 
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
-#define VALlightTopThreshold 400
+#define VALlightTopThreshold 300
 
 // SHOOTING
 // required flywheel speed proportion to take a shot
@@ -131,7 +131,7 @@ void stopDriveMotors(void){
     TCCR2A = TCCR2A & 0b01111111; 
 }
 
-void botRotate(signed long deg){
+void botRotate(int deg){
   stopDriveMotors();
   unsigned long startTime = millis();
   unsigned long finalTime = abs(deg) * 9.63;
@@ -178,10 +178,8 @@ unsigned char testForLine(void){
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
   if (trigger != lastTrigger) {
     setSharedInfoTo(trigger);
-    Serial.print("line detected info; Old Trigger:");
-    Serial.print(lastTrigger, HEX);
-    Serial.print(", New Trigger:");
-    Serial.println(trigger, HEX);
+    Serial.print("line detected info:");
+    Serial.print(lastTrigger);
   }
   lastTrigger = trigger;
   return EventOccurred;
@@ -202,17 +200,17 @@ unsigned char respLineAlign(void){
     //Serial.println(trigger, HEX);
     switch(trigger){
       //if the center has hit the line, then bot rotates clockwise
-      case(VALline00C0): botRotate(-20); break; 
-      case(VALline0LC0): botRotate(-20); break;
-      case(VALline0LCR): botRotate(-20); break;
-      case(VALline00CR): botRotate(-20); break; 
+      case(VALline00C0): botRotate(-10); break; 
+      case(VALline0LC0): botRotate(-10); break;
+      case(VALline0LCR): botRotate(-10); break;
+      case(VALline00CR): botRotate(-10); break; 
 
       case(VALline0000): motorRForward(); motorLForward(); break;
       case(VALlineF000): motorRForward(); motorLForward(); break;
            
-      case(VALline000R): botRotate(-20); break;
-      case(VALline0L00): botRotate(-20); break;
-      case(VALline0L0R): botRotate(-20); break;
+      case(VALline000R): botRotate(-10); break;
+      case(VALline0L00): botRotate(-10); break;
+      case(VALline0L0R): botRotate(-10); break;
 
       case(VALlineFL0R): stopDriveMotors(); Serial.println("Center Sensor Error"); break;
       case(VALlineF00R): motorLForward(); break;
@@ -368,7 +366,7 @@ int fixAngle(int angle) {
 
 class Shooter {
 private:
-  unsigned int speed_ = 0;
+  unsigned int speed = 0;
   uint8_t shooting   = 0;
   int speed_error    = 0;
   uint8_t shots_left = 7;
@@ -380,10 +378,10 @@ public:
    */
   void shooterUpkeep(unsigned long time) {
     // Set the flywheel speed
-    speed_error = setFlyWheelSpeed(speed_);
+    speed_error = setFlyWheelSpeed(speed);
     // Take a shot if able
     if (shooting && 
-        (abs(speed_error) < speed_*SPEED_ERROR_THRESH)) {
+        (abs(speed_error) < speed*SPEED_ERROR_THRESH)) {
       // TODO -- FIX BLOCKING CODE!
       digitalWrite(SOLENOID, HIGH);
       delay(200);
@@ -404,7 +402,7 @@ public:
    *                  for shot
    */
   void shoot(unsigned int set_speed) {
-    speed_ = set_speed;
+    speed = set_speed;
     shooting = 1;
   }
 
@@ -418,14 +416,13 @@ public:
   /** DEBUG -- Set flywheel speed setpoint
    */
   void setSpeed(unsigned int set_speed) {
-    speed_ = set_speed;
-    shooting = 0;
+    speed = set_speed;
   }
 
   /** DEBUG -- Get flywheel speed setpoint
    */
   unsigned int getSpeed() {
-    return speed_;
+    return speed;
   }
 };
 
@@ -769,23 +766,14 @@ void RespToKey(void) {
   Serial.println("");
   
   switch (theKey) {
-    case 'L': {
-      // TAKE A SHOT!
-      Serial.print("Taking a shot at speed=");
-      unsigned int speed = ReadSerialInt();
-      Serial.println(speed);
-      shooter.shoot(speed);
-    }
-    
-    case 'F': {
+    case 'F':
       // SET FLYWHEEL SPEED
       // This function sets the flywheel speed. It is triggered by an input to the serial monitor of the form "F100", where the F tells the program to set the flywheel and the int tells us the speed on a map from 0 to 256 (for example).
       // Responsible: George Herring
       Serial.println("Modifying Motor Speed");
-      unsigned int speed = ReadSerialInt();
+      unsigned int speed;
       shooter.setSpeed(speed);
       Serial.println(speed);
-    }
       
       break;
       
