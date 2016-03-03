@@ -49,20 +49,23 @@ Commands:
 //LINE SENSOR HEX VALUES - hex value summarizing status of line followers 
 #define VALline0000 0x00
 #define VALline000R 0x01
-#define VALline00C0 0x02
-#define VALline00CR 0x03
-#define VALline0L00 0x04
-#define VALline0L0R 0x05
-#define VALline0LC0 0x06
-#define VALline0LCR 0x07
-#define VALlineF000 0x08
-#define VALlineF00R 0x09
-#define VALlineF0C0 0x10
-#define VALlineF0CR 0x11
-#define VALlineFL00 0x12
-#define VALlineFL0R 0x13
-#define VALlineFLC0 0x14
-#define VALlineFLCR 0x15
+#define VALline00C0 0x04
+#define VALline00CR 0x05
+#define VALline0L00 0x10
+#define VALline0L0R 0x11
+#define VALline0LC0 0x14
+#define VALline0LCR 0x15
+#define VALlineF000 0x40
+#define VALlineF00R 0x41
+#define VALlineF0C0 0x44
+#define VALlineF0CR 0x45
+#define VALlineFL00 0x50
+#define VALlineFL0R 0x51
+#define VALlineFLC0 0x54
+#define VALlineFLCR 0x55
+
+#define motorLSpeed 0x138b
+#define motorRSpeed 0xd8
 
 // BEACON SENSING
 #define READ_LENGTH 180
@@ -81,25 +84,46 @@ Commands:
 static unsigned char VARsharedByte;
     
 void motorLForward(void){
+  if (digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000))){
+    return;
+  }
+  else {
     digitalWrite(MOTOR_DIR_L  , HIGH);    
     TCCR1A = TCCR1A | 0b00100000;
-    OCR1B = 0x138b; 
+    OCR1B = motorLSpeed;
+    return;
+  }
 }
 void motorRForward(void){
-  digitalWrite(MOTOR_DIR_R, HIGH);         
-  TCCR2A = TCCR2A | 0b10000000;
-  OCR2A = 0xd8;
+  if (digitalRead(MOTOR_DIR_R) && ((OCR2A == motorRSpeed) && (TCCR2A & 0b10000000))){
+    return;
+  }
+  else {
+    digitalWrite(MOTOR_DIR_R, HIGH);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed;
+  }
 }
 
 void motorLBack(void){
+  if (!digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000))){
+    return;
+  }
+  else {
     digitalWrite(MOTOR_DIR_L  , LOW);    
     TCCR1A = TCCR1A | 0b00100000;
-    OCR1B = 0x138b; 
+    OCR1B = motorLSpeed;
+  }
 }
 void motorRBack(void){
-  digitalWrite(MOTOR_DIR_R, LOW);         
-  TCCR2A = TCCR2A | 0b10000000;
-  OCR2A = 0xd8;
+  if (!digitalRead(MOTOR_DIR_R) && ((OCR2A == motorRSpeed) && (TCCR2A & 0b10000000))){
+    return;
+  }
+  else {
+    digitalWrite(MOTOR_DIR_R, LOW);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed;
+  }
 }
 
 void stopDriveMotors(void){
@@ -123,7 +147,7 @@ void botRotate(signed long deg){
       digitalWrite(MOTOR_DIR_L, HIGH);
       digitalWrite(MOTOR_DIR_R, LOW);
     }
-    Serial.println(currentTime(startTime));
+    //Serial.println(currentTime(startTime));
   }
   digitalWrite(MOTOR_POW_L, LOW);
   digitalWrite(MOTOR_POW_R, LOW);
@@ -149,12 +173,13 @@ unsigned char testForLine(void){
   lightValC = analogRead(PINlineSenseC);
   lightValL = analogRead(PINlineSenseL);
   
-  trigger = ((lightValF >= VALlightTopThreshold)<<8)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
+  trigger = ((lightValF >= VALlightTopThreshold)<<6)|((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
   
   EventOccurred = ((trigger != 0x00) && (trigger != lastTrigger));
   if (trigger != lastTrigger) {
     setSharedInfoTo(trigger);
-    Serial.println("line detected!");
+    Serial.print("line detected info:");
+    Serial.print(lastTrigger
   }
   lastTrigger = trigger;
   return EventOccurred;
@@ -172,7 +197,7 @@ unsigned char getSharedByte(void){
 unsigned char respLineAlign(void){
     unsigned char trigger;
     trigger = getSharedByte();
-    Serial.println(trigger, HEX);
+    //Serial.println(trigger, HEX);
     switch(trigger){
       //if the center has hit the line, then bot rotates clockwise
       case(VALline00C0): botRotate(-10); break; 
@@ -189,7 +214,7 @@ unsigned char respLineAlign(void){
 
       case(VALlineFL0R): stopDriveMotors(); Serial.println("Center Sensor Error"); break;
       case(VALlineF00R): motorLForward(); break;
-      case(VALlineFL00): motorRForward();break;
+      case(VALlineFL00): motorRForward(); break;
       
 
       //if center and front are true, then we're aligned
@@ -274,12 +299,16 @@ void setServoAngle(unsigned int angle){
  */
 int ReadSerialInt(void){
   String input = "";
+  short signFlag = 1;
   while (Serial.available()>0){
     int inChar = Serial.read();
     if (isDigit(inChar)) {
       // convert the incoming byte to a char
       // and add it to the string:
       input += (char)inChar;
+    } 
+    else if (inChar == '-'){
+      signFlag = -1;
     }
   }
   return input.toInt();
@@ -838,15 +867,17 @@ void loop() {
   bSensor.beaconUpkeep(current_time);
 
   // flywheel upkeep
-  // setFlyWheelSpeed(flyWheelSpeed);
   shooter.shooterUpkeep(current_time);
 
+  // Line Following upkeep
+  testForLine();
+
   unsigned int analogVal = 112;
-  // unsigned int flyWheelSpeed = 0;
+  char inputChar;
   //Serial.println(otherVal);
 
   // handle line following
   if (!alignment) {
-     alignment = respLineAlign();
-   }
- }
+    alignment = respLineAlign();
+  }
+}
