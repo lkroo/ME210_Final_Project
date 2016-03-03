@@ -366,7 +366,7 @@ int fixAngle(int angle) {
 
 class Shooter {
 private:
-  unsigned int speed = 0;
+  unsigned int speed_ = 0;
   uint8_t shooting   = 0;
   int speed_error    = 0;
   uint8_t shots_left = 7;
@@ -378,10 +378,10 @@ public:
    */
   void shooterUpkeep(unsigned long time) {
     // Set the flywheel speed
-    speed_error = setFlyWheelSpeed(speed);
+    speed_error = setFlyWheelSpeed(speed_);
     // Take a shot if able
     if (shooting && 
-        (abs(speed_error) < speed*SPEED_ERROR_THRESH)) {
+        (abs(speed_error) < speed_*SPEED_ERROR_THRESH)) {
       // TODO -- FIX BLOCKING CODE!
       digitalWrite(SOLENOID, HIGH);
       delay(200);
@@ -402,7 +402,7 @@ public:
    *                  for shot
    */
   void shoot(unsigned int set_speed) {
-    speed = set_speed;
+    speed_ = set_speed;
     shooting = 1;
   }
 
@@ -416,13 +416,14 @@ public:
   /** DEBUG -- Set flywheel speed setpoint
    */
   void setSpeed(unsigned int set_speed) {
-    speed = set_speed;
+    speed_ = set_speed;
+    shooting = 0;
   }
 
   /** DEBUG -- Get flywheel speed setpoint
    */
   unsigned int getSpeed() {
-    return speed;
+    return speed_;
   }
 };
 
@@ -766,14 +767,23 @@ void RespToKey(void) {
   Serial.println("");
   
   switch (theKey) {
-    case 'F':
+    case 'L': {
+      // TAKE A SHOT!
+      Serial.print("Taking a shot at speed=");
+      unsigned int speed = ReadSerialInt();
+      Serial.println(speed);
+      shooter.shoot(speed);
+    }
+    
+    case 'F': {
       // SET FLYWHEEL SPEED
       // This function sets the flywheel speed. It is triggered by an input to the serial monitor of the form "F100", where the F tells the program to set the flywheel and the int tells us the speed on a map from 0 to 256 (for example).
       // Responsible: George Herring
       Serial.println("Modifying Motor Speed");
-      unsigned int speed;
+      unsigned int speed = ReadSerialInt();
       shooter.setSpeed(speed);
       Serial.println(speed);
+    }
       
       break;
       
