@@ -76,13 +76,18 @@ Commands:
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
 #define VALlightTopThreshold 300
+#define VALClipLightThreshold 300
 
 // SHOOTING
 // required flywheel speed proportion to take a shot
 #define SPEED_ERROR_THRESH 0.1
 
 static unsigned char VARsharedByte;
-    
+
+unsigned char isClipEmpty(void){
+  unsigned char trigger = (analogRead(PINclipSense)>VALClipLightThreshold);
+  return trigger; 
+}
 void motorLForward(void){
   if (digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000))){
     return;
