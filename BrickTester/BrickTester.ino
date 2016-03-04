@@ -587,80 +587,67 @@ void loop() {
     // Run main loop logic
     switch my_case:
         case 1: // Initiating Beacon Sensor Sweep
-            // Take a sensor sweep if we
-            // have no valid sensor data
-            if (!bSensor.isValid()) {
-              bSensor.findbeacons();
+          // Take a sensor sweep if we
+          // have no valid sensor data
+          if (!bSensor.isValid()) {
+            bSensor.findbeacons();
+          }
+          else {
+            // check if sensor reading 
+            // doesn't meet threshold value
+            if (bSensor.getHeading == -1) {
+              // if beacons are not in
+              // view, we should rotate 180 deg
+              bSensor.clear();
+              botRotate(120);
             }
+            // otherwise, proceed
             else {
-              // check if sensor reading 
-              // doesn't meet threshold value
-              if (bSensor.getHeading == -1) {
-                // if beacons are not in
-                // view, we should rotate 180 deg
-                bSensor.clear();
-                botRotate(120);
-              }
-              // otherwise, proceed
-              else {
-                bot_angle = bSensor.getHeading();
-                botRotate(desiredBotAngle - bot_angle);
+              bot_angle = bSensor.getHeading();
+              botRotate(desiredBotAngle - bot_angle);
 
-                // run beacon test again to prepare for targeting routine
-                bSensor.findbeacons();
-                
-                ++my_case;
-              }
+              // run beacon test again to prepare for targeting routine
+              bSensor.findbeacons();
+              
+              ++my_case;
             }
-            break;
+          }
+          break;
             
         case 2: // Find Bot Angle, take shots
                 // on three closest beacons until the clip is empty
-
-                if ((shooter.shotsLeft() > 0) && ( ! isClipEmpty() )){
-                  // if clip not empty then go into shooting mode
-                  bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
-                  
-                  int shotAngle1 = 100 -bot_angle;
-                  int shotAngle2 = 120- bot_angle;
-                  int shotAngle3  = 133-bot_angle;
-                  unsigned int speed1 = 160;
-                  unsigned int speed2 = 163;
-                  unsigned int speed3 = 164;
-
-                  if (shooter.shotsLeft() > 5){
-                    //shoot at closest beacon
-
-                    //pan servo
-                    bsensor.setAngle(shotAngle1)
-
-                    //setflywheel speed
-                    shooter.setSpeed(speed1);
-
-                    //shoot
-                     digitalWrite(SOLENOID, HIGH);
-                     delay(200);
-                     digitalWrite(SOLENOID, LOW);
-                    
-                    
-                  }
-
-                  if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
-                     // shoot at 2nd closest beacon
-                     
-                     
-                  }
-
-                  if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
-                     //shoot at 3rd closest Beacon
-                     
-                  }
-
-                  
-                  }
+          if ((shooter.shotsLeft() > 0) && ( ! isClipEmpty() )){
+            // if clip not empty then go into shooting mode
+            bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
             
-            ++my_case;
-            break;
+            int shotAngle1 = 100 -bot_angle;
+            int shotAngle2 = 120- bot_angle;
+            int shotAngle3  = 133-bot_angle;
+            unsigned int speed1 = 160;
+            unsigned int speed2 = 163;
+            unsigned int speed3 = 164;
+
+            if (shooter.shotsLeft() > 5){
+              //shoot at closest beacon                   
+              bsensor.setAngle(shotAngle1) //pan servo
+              shooter.shoot(speed1); //setflywheel speed & shoots
+            }
+
+            if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
+               // shoot at 2nd closest beacon
+              bsensor.setAngle(shotAngle2) //pan servo
+              shooter.shoot(speed2); //setflywheel speed & shoots
+                   
+            }
+
+            if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
+               //shoot at 3rd closest Beacon
+              bsensor.setAngle(shotAngle3) //pan servo
+              shooter.shoot(speed3); //setflywheel speed & shoots              
+            }                  
+          }            
+          ++my_case;
+          break;
             
         case 3: // Turn to DEAD_ANGLE_1
             // TODO -- is botRotate() blocking?
