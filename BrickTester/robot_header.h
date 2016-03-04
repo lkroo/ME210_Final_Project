@@ -728,6 +728,14 @@ public:
   bool isValid() const {
     return valid_read_;
   }
+
+  int lEdge(){
+    for (int i = 179; i>=0; i--){
+      if(read_current_[i]){
+        return i;//note: this return assumes that that there is one degree per index
+      }
+    }
+  }
 };
 
 void setServoPos(unsigned int angle){
@@ -737,5 +745,85 @@ void setServoPos(unsigned int angle){
   adjustedAngle = angle + SERVO_OFFSET_ANGLE;
   OCR1B = 0x0BB8-(adjustedAngle<<3)-(adjustedAngle<<2)+1080;
   OCR1A = 0x0BB8-(adjustedAngle<<3)-(adjustedAngle<<2)+1080;
+}
+
+
+void arcLeft(void){
+  if (!(digitalRead(MOTOR_DIR_L) && ((OCR1B == (motorLSpeed<<1)) && (TCCR1A & 0b00100000)))){
+    digitalWrite(MOTOR_DIR_L  , HIGH);    
+    TCCR1A = TCCR1A | 0b00100000;
+    OCR1B = motorLSpeed>>1;
+  }
+  if (!(digitalRead(MOTOR_DIR_R) && ((OCR2A == motorRSpeed) && (TCCR2A & 0b10000000)))){
+    digitalWrite(MOTOR_DIR_R, HIGH);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed;
+  }
+  return;
+}
+
+void arcRight(void){
+  if (!(digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000)))){
+    digitalWrite(MOTOR_DIR_L  , HIGH);    
+    TCCR1A = TCCR1A | 0b00100000;
+    OCR1B = motorLSpeed;
+  }
+  if (!(digitalRead(MOTOR_DIR_R) && ((OCR2A == (motorRSpeed<<1)) && (TCCR2A & 0b10000000)))){
+    digitalWrite(MOTOR_DIR_R, HIGH);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed>>1;
+  }
+  return;
+}
+
+int seekCenterLine(bool beaconVal){
+  unsigned char trigger;
+  trigger = getSharedByte();
+  //Serial.println(trigger, HEX);
+  switch(trigger){
+    //if the center has hit the line, then bot rotates clockwise
+    case(VALline00C0): botRotate(-10); break; 
+    case(VALline0LC0): botRotate(-10); break;
+    case(VALline0LCR): botRotate(-10); break;
+    case(VALline00CR): botRotate(-10); break; 
+
+    case(VALline0000): 
+      if(beaconVal){
+        arcLeft();
+      }
+      else{
+        arcRight();
+      }
+      break;
+
+    case(VALlineF000): 
+      if(beaconVal){
+        arcLeft();
+      }
+      else{
+        arcRight();
+      }
+      break;
+         
+    case(VALline000R): botRotate(-10); break;
+    case(VALline0L00): botRotate(-10); break;
+    case(VALline0L0R): botRotate(-10); break;
+
+    case(VALlineFL0R): stopDriveMotors(); break;
+    case(VALlineF00R): motorLForward(); break;
+    case(VALlineFL00): motorRForward(); break;
+    
+
+    //if center and front are true, then we're aligned
+    case(VALlineF0C0): stopDriveMotors(); return 1; break;
+    case(VALlineFLC0): stopDriveMotors(); return 1; break;
+    case(VALlineFLCR): stopDriveMotors(); return 1; break;
+    case(VALlineF0CR): stopDriveMotors(); return 1; break;
+
+
+            
+    default: Serial.println("Error (respLineAlign()) broke."); motorRForward(); motorLForward(); break;
+  }
+  return 0;
 }
 

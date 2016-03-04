@@ -114,7 +114,7 @@ void loop() {
               // run beacon test again to prepare for targeting routine
               bSensor.findBeacons();
               
-              ++my_case;
+              my_case = 3;
             }
           }
           break;
@@ -163,15 +163,27 @@ void loop() {
           break;
             
          case 3: // Turn to DEAD_ANGLE_1
+              static int leftEdge = 0;
+              if (bSensor.isValid()){
+                leftEdge = bSensor.lEdge();
+              }
+              if (abs(leftEdge-90)>3){
+                botRotate(leftEdge-90);
+                bSensor.clear();
+                bSensor.findBeacons();
+              }
+              else{
+                seekCenterLine(digitalRead(BEACON1));
+              }
              // TODO -- is botRotate() blocking?
-             bot_angle = bSensor.getHeading(0);
-             botRotate(fixAngle(24-bot_angle));
-             bSensor.clear(); // data is now invalid
-             motorLForward(); 
-             motorRForward(); 
-             alignment = 0;
-             ++my_case;
-             break;
+             // bot_angle = bSensor.getHeading(0);
+             // botRotate(fixAngle(24-bot_angle));
+             // bSensor.clear(); // data is now invalid
+             // motorLForward(); 
+             // motorRForward(); 
+             // alignment = 0;
+             // ++my_case;
+             // break;
         case 4: 
             if (alignment){                      
               motorLBack();
@@ -198,49 +210,48 @@ void loop() {
           break;
 
         case 7:
-          
-            int shotsRemaining = 7;
-            while(shotsRemaining>0){
-              if (shooter.shotsLeft() > 0){
-                // if clip not empty then go into shooting mode
-                //bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
-                
-                int shotAngle1 = 90;
-                int shotAngle2 = 57;
-                int shotAngle3 = 123;
-                unsigned int speed1 = 155;
-                unsigned int speed2 = 160;
-                unsigned int speed3 = 160;
+         int shotsRemaining = 7;
+            while(shotsRemaining>0){
+              if (shooter.shotsLeft() > 0){
+                // if clip not empty then go into shooting mode
+                //bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
+                
+                int shotAngle1 = 90;
+                int shotAngle2 = 57;
+                int shotAngle3 = 123;
+                unsigned int speed1 = 155;
+                unsigned int speed2 = 160;
+                unsigned int speed3 = 160;
 
-                if ((shooter.shotsLeft() > 5) && 
-                    (!shooter.getShooting())) {
-                  //shoot at closest beacon                   
-                  bSensor.setAngle(shotAngle1); //pan servo
-                  shooter.shoot(speed1); //setflywheel speed & shoots
-                }
+                if ((shooter.shotsLeft() > 5) && 
+                    (!shooter.getShooting())) {
+                  //shoot at closest beacon                   
+                  bSensor.setAngle(shotAngle1); //pan servo
+                  shooter.shoot(speed1); //setflywheel speed & shoots
+                }
 
-                if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
-                   // shoot at 2nd closest beacon
-                  bSensor.setAngle(shotAngle2); //pan servo
-                  shooter.shoot(speed2); //setflywheel speed & shoots
-                       
-                }
+                if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
+                   // shoot at 2nd closest beacon
+                  bSensor.setAngle(shotAngle2); //pan servo
+                  shooter.shoot(speed2); //setflywheel speed & shoots
+                       
+                }
 
-                if ((shooter.shotsLeft()>0) && (shooter.shotsLeft() < 4)){
-                   //shoot at 3rd closest Beacon
-                  bSensor.setAngle(shotAngle3); //pan servo
-                  shooter.shoot(speed3); //setflywheel speed & shoots              
-                  // DEBUG
-                  
-                }                  
-              }
-              else {
-                my_case = 4;
-                shooter.setSpeed(0);
-              }
-            }
-            //else !! if we're out of chips            
-            break;
+                if ((shooter.shotsLeft()>0) && (shooter.shotsLeft() < 4)){
+                   //shoot at 3rd closest Beacon
+                  bSensor.setAngle(shotAngle3); //pan servo
+                  shooter.shoot(speed3); //setflywheel speed & shoots              
+                  // DEBUG
+                  
+                }                  
+              }
+              else {
+                my_case = 4;
+                shooter.setSpeed(0);
+              }
+            }
+            //else !! if we're out of chips            
+            break;
           
            
         // case 4: // Drive forward for DEAD_TIME_1
