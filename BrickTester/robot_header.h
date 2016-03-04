@@ -416,8 +416,11 @@ public:
       //Serial.println((velocity>>SPEED_ERROR_THRESH), DEC);
       if (speed_error <= (velocity>>SPEED_ERROR_THRESH)) {
         stableSpeedCount++;
+        Serial.print("count");
+        Serial.println(stableSpeedCount);
       }
-      if (stableSpeedCount>400){
+      // TODO -- use timer instead of machine cycle
+      if (stableSpeedCount>20){
         stableSpeedCount = 0;
         // TODO -- FIX BLOCKING CODE!
         digitalWrite(SOLENOID, HIGH);
