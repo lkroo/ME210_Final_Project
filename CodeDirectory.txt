@@ -52,7 +52,7 @@
 		#define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
 
 		void setServoAngle(unsigned int angle); 
-
+		void setAngle(unsigned int angle); //sets pan angle of servo
 		void convolve (const uint8_t Signal[], const uint8_t Kernel[], char Result[]); 
 
 !!		int fixAngle(int angle); // makes input go in [0,360] !! why not use mod360

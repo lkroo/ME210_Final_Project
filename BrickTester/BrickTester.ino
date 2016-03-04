@@ -510,6 +510,7 @@ public:
 // THOSE WHO TRESPASS AGAINST US.
 uint8_t my_case = 1;
 unsigned long current_time = 0;
+int desiredBotAngle = 30;
 
 // Beacon Sensor Object
 BeaconSensor bSensor; // create new object
@@ -602,6 +603,12 @@ void loop() {
               }
               // otherwise, proceed
               else {
+                bot_angle = bSensor.getHeading();
+                botRotate(desiredBotAngle - bot_angle);
+
+                // run beacon test again to prepare for targeting routine
+                bSensor.findbeacons();
+                
                 ++my_case;
               }
             }
@@ -609,8 +616,11 @@ void loop() {
             
         case 2: // Find Bot Angle, take shots
                 // on three closest beacons until the clip is empty
+
                 if ((shooter.shotsLeft() > 0) && ( ! isClipEmpty() )){
+                  // if clip not empty then go into shooting mode
                   bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
+                  
                   int shotAngle1 = 100;
                   int shotAngle2 = 120;
                   int shotAngle3  =133;
@@ -620,18 +630,19 @@ void loop() {
 
                   if (shooter.shotsLeft() > 5){
                     //shoot at closest beacon
-                    int shotAngle1 = 100;
+                    
+                    
                   }
 
                   if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
                      // shoot at 2nd closest beacon
-                     int shotAngle2 = 120;
+                     
                      
                   }
 
                   if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
                      //shoot at 3rd closest Beacon
-                     int shotAngle3  =133;
+                     
                   }
 
                   
