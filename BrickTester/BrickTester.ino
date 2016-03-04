@@ -42,7 +42,7 @@
 // BEACON SENSING
 #define READ_LENGTH 180
 #define READ_TIME 20  // Time for short move
-#define CONV_THRESH 1 // Threshold for a valid signal sweep
+#define CONV_THRESH 3 // Threshold for a valid signal sweep
 #define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
 
 // Servo Handling
@@ -594,13 +594,11 @@ void loop() {
             else {
               // check if sensor reading 
               // doesn't meet threshold value
-              if (false) {
-                // TODO -- Check that sensor
-                // data meets threshold; if
-                // not the beacons are not in
-                // view, and we should rotate
+              if (bSensor.getHeading == -1) {
+                // if beacons are not in
+                // view, we should rotate 180 deg
                 bSensor.clear();
-                // botTurn(180);
+                botRotate(180);
               }
               // otherwise, proceed
               else {
