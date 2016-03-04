@@ -523,6 +523,7 @@ private:
   bool scanning_ = 0;     // currently scanning?
   bool valid_read_ = 0;   // 
   bool scan_start_ = 0;   // 
+  bool edge_finding_ = 0; // e
 
   /** Sweeps servo angle between bounds.
    */
@@ -547,51 +548,141 @@ public:
   /** Public constructor
    */
   BeaconSensor() {
-    // TODO -- Collect sensor readings at critical field positions
+    // Corner case
     for (int i=0; i<READ_LENGTH-1; ++i) {
               read_master_[i] = 0;
             }
-    read_master_[32] = 1;
     read_master_[33] = 1;
     read_master_[34] = 1;
     read_master_[35] = 1;
     read_master_[36] = 1;
+    read_master_[37] = 1;
+    read_master_[38] = 1;
+    read_master_[39] = 1;
 
-    read_master_[40] = 1;
-    read_master_[41] = 1;
-    read_master_[42] = 1;
     read_master_[43] = 1;
     read_master_[44] = 1;
     read_master_[45] = 1;
     read_master_[46] = 1;
+    read_master_[47] = 1;
+    read_master_[48] = 1;
+    read_master_[49] = 1;
+    read_master_[50] = 1;
+    read_master_[51] = 1;
 
-    read_master_[52] = 1;
-    read_master_[53] = 1;
-    read_master_[54] = 1;
-    read_master_[55] = 1;
-    read_master_[56] = 1;
-    read_master_[57] = 1;
-    read_master_[58] = 1;
     read_master_[59] = 1;
+    read_master_[60] = 1;
+    read_master_[61] = 1;
+    read_master_[62] = 1;
+    read_master_[63] = 1;
+    read_master_[64] = 1;
 
-    read_master_[70] = 1;
-    read_master_[71] = 1;
-    read_master_[72] = 1;
-    read_master_[73] = 1;
-    read_master_[74] = 1;
+    read_master_[78] = 1;
+    read_master_[79] = 1;
+    read_master_[80] = 1;
+    read_master_[81] = 1;
+    read_master_[82] = 1;
+    read_master_[83] = 1;
+    read_master_[84] = 1;
+    read_master_[85] = 1;
+    read_master_[86] = 1;
+    read_master_[87] = 1;
+    read_master_[88] = 1;
 
-    read_master_[91] = 1;
-    read_master_[92] = 1;
-    read_master_[93] = 1;
-    read_master_[94] = 1;
-    read_master_[95] = 1;
-    read_master_[96] = 1;
-    read_master_[97] = 1;
-    read_master_[98] = 1;
-    read_master_[99] = 1;
-    read_master_[100] = 1;
-    read_master_[101] = 1;
+    // Center case
+    for (int i=0; i<READ_LENGTH-1; ++i) {
+              read_master2_[i] = 0;
+            }
+    read_master2_[41] = 1;
+    read_master2_[42] = 1;
+    read_master2_[43] = 1;
+    read_master2_[44] = 1;
+    read_master2_[45] = 1;
+    read_master2_[46] = 1;
+    read_master2_[47] = 1;
+    read_master2_[48] = 1;
+    read_master2_[49] = 1;
+    read_master2_[50] = 1;
+    read_master2_[51] = 1;
+    read_master2_[52] = 1;
+    read_master2_[53] = 1;
+    read_master2_[54] = 1;
+    read_master2_[55] = 1;
+    read_master2_[56] = 1;
+    read_master2_[57] = 1;
+    read_master2_[58] = 1;
+    read_master2_[59] = 1;
+    read_master2_[60] = 1;
+    read_master2_[61] = 1;
+    read_master2_[62] = 1;
+    read_master2_[63] = 1;
+    read_master2_[64] = 1;
+    read_master2_[65] = 1;
+    read_master2_[66] = 1;
+    read_master2_[67] = 1;
+
+    read_master2_[74] = 1;
+
+    read_master2_[76] = 1;
+    read_master2_[77] = 1;
+    read_master2_[78] = 1;
+    read_master2_[79] = 1;
+    read_master2_[80] = 1;
+    read_master2_[81] = 1;
+    read_master2_[82] = 1;
+    read_master2_[83] = 1;
+    read_master2_[84] = 1;
+    read_master2_[85] = 1;
+    read_master2_[86] = 1;
+    read_master2_[87] = 1;
+    read_master2_[88] = 1;
+    read_master2_[89] = 1;
+    read_master2_[90] = 1;
+    read_master2_[91] = 1;
+    read_master2_[92] = 1;
+    read_master2_[93] = 1;
+    read_master2_[94] = 1;
+    read_master2_[95] = 1;
+    read_master2_[96] = 1;
+    read_master2_[97] = 1;
+    read_master2_[98] = 1;
+    read_master2_[99] = 1;
+    read_master2_[100] = 1;
+    read_master2_[101] = 1;
+    read_master2_[102] = 1;
+    read_master2_[103] = 1;
+    read_master2_[104] = 1;
+    read_master2_[105] = 1;
+    read_master2_[106] = 1;
+    read_master2_[107] = 1;
+    read_master2_[108] = 1;
+
+    read_master2_[118] = 1;
+    read_master2_[119] = 1;
+    read_master2_[120] = 1;
+    read_master2_[121] = 1;
+    read_master2_[122] = 1;
+    read_master2_[123] = 1;
+    read_master2_[124] = 1;
+    read_master2_[125] = 1;
+    read_master2_[126] = 1;
+    read_master2_[127] = 1;
+    read_master2_[128] = 1;
+    read_master2_[129] = 1;
+    read_master2_[130] = 1;
+    read_master2_[131] = 1;
+
+    read_master2_[141] = 1;
+    read_master2_[142] = 1;
+    read_master2_[143] = 1;
+    read_master2_[144] = 1;
+    read_master2_[145] = 1;
+    read_master2_[146] = 1;
+    read_master2_[147] = 1;
+    read_master2_[148] = 1;
+    read_master2_[149] = 1;
   }
+
 
   /** Drives sweeps servo between angle bounds
    *  and takes beacon sensor measurements.
@@ -637,6 +728,10 @@ public:
       if (idx_==0) {
         scanning_ = 0;
         valid_read_ = 1;
+      }
+
+      if (edge_finding_) {
+
       }
     }
 
