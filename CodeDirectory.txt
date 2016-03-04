@@ -1,0 +1,98 @@
+/*List of functions*/
+
+/*******************************
+	PIN AND FUNCTION DIRECTORY
+****/
+
+//Always needs to be Running=============
+//********************************************
+// Driving 
+	#define MOTOR_POW_L   10 // controlled by OC1B
+	#define MOTOR_POW_R   11 // controlled by OC2A
+	#define MOTOR_DIR_L   12 // 1 = forward, 0 = back
+	#define MOTOR_DIR_R   13 // 1 = forward, 0 = back
+
+	void motorLForward(void); 
+	void motorRForward(void);
+	void motorLBack(void);
+	void motorRBack(void);
+
+	void stopDriveMotors(void);
+	void botRotate(int deg);
+
+// Navigation/Aiming
+	//Line
+		#define PINlineSenseF  A1 // back line sensor
+		#define PINlineSenseR  A2 // right line sensor
+		#define PINlineSenseC  A3 // center line sensor
+		#define PINlineSenseL  A4 // left line sensor
+		#define VALlineFLCR 0x55
+		
+		#define VALlightTopThreshold 500
+		static unsigned char VARsharedByte;
+
+		unsigned char testForLine(void); //returns 1 if Line detected, and 0 if in white space
+			void setSharedInfoTo(unsigned char newByte); //sends in an information for storage in VARsharedByte
+			unsigned char getSharedByte(void); //grabs information from setShared Info from VARsharedByte
+
+		unsigned char respLineAlign(void); //returns 1 if aligned, 0 if not aligned; 
+
+
+
+	//Beacon & Panning
+		#define BEACON1        5 //
+		#define BEACON2        6 // 
+		#define SERVO_PAN      9 // 
+		#define SERVO_OFFSET_ANGLE 11
+
+		#define READ_LENGTH 180
+		#define READ_TIME 20  // Time for short move
+		#define CONV_THRESH 1 // Threshold for a valid signal sweep
+		#define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
+
+		void setServoAngle(unsigned int angle); 
+
+		void convolve (const uint8_t Signal[], const uint8_t Kernel[], char Result[]); 
+
+!!		int fixAngle(int angle); // makes input go in [0,360] !! why not use mod360
+
+
+// Shooting===============
+	#define SOLENOID       2 // 
+	#define FLYWHEEL       3 // 
+	#define FLYWHEEL_SENSE A5 // Flywheel speed sensor
+	
+	#define PINclipSense   A0 // clip sensor
+	#define VALClipLightThreshold 300
+	
+
+	//objects
+		class Shooter:
+			//public functions
+			void shoot(unsigned int set_speed);
+			uint8_t shotsLeft(); //remaining shots left
+			void setSpeed(unsigned int set_speed); 
+			unsigned int getSpeed(); 
+		BeaconShooter:
+			//public functions
+			BeaconSensor(); //constructor containing expected beacon positions
+			void beaconUpkeep(unsigned long time);
+			void findBeacons(void); //begins new sweep
+			void setAngle(unsigned int); //int between 0 and 180
+			int getHeading(int my_case); //returns botAngle
+			uint8_t* getInfo(); //returns beacon position array of 0 and 1
+			void clear(); // clears update flag
+			bool isScanning() const; 
+			bool isValid() const;
+
+	void setServoPos(unsigned int angle); //[angle between 0 and 180]
+	void setServoPower(unsigned int motorPower); 
+	int setFlywheelSpeed(unsigned int Speed); //Speed <400
+	unsigned int getMotorSpeed(void);
+	unsigned char isClipEmpty(void);
+
+
+//UPKEEP FUNCTIONS
+	unsigned long currentTime(unsigned long startTime); // returns the elapsed time in millis given the startTime (in millis)
+
+

@@ -76,13 +76,18 @@ Commands:
 // Servo Handling
 #define SERVO_OFFSET_ANGLE 11
 #define VALlightTopThreshold 300
+#define VALClipLightThreshold 300
 
 // SHOOTING
 // required flywheel speed proportion to take a shot
-#define SPEED_ERROR_THRESH 3
+#define SPEED_ERROR_THRESH 0.1
 
 static unsigned char VARsharedByte;
-    
+
+unsigned char isClipEmpty(void){
+  unsigned char trigger = (analogRead(PINclipSense)>VALClipLightThreshold);
+  return trigger; 
+}
 void motorLForward(void){
   if (digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000))){
     return;
@@ -380,21 +385,18 @@ public:
     // Set the flywheel speed
     speed_error = setFlyWheelSpeed(speed);
     // Take a shot if able
-    if (shooting){
-      Serial.println(speed_error, DEC);
-      Serial.println((speed_>>SPEED_ERROR_THRESH), DEC);
-      if (speed_error <= (speed_>>SPEED_ERROR_THRESH)) {
-        // TODO -- FIX BLOCKING CODE!
-        digitalWrite(SOLENOID, HIGH);
-        delay(200);
-        digitalWrite(SOLENOID, LOW);
-        // Clear shot flag
-        shooting = 0;
-        // TODO -- Use the clip sensor to determine
-        //         if the shot was successful
-        // DEBUG -- Assume the shot worked
-        --shots_left;
-      }
+    if (shooting && 
+        (abs(speed_error) < speed*SPEED_ERROR_THRESH)) {
+      // TODO -- FIX BLOCKING CODE!
+      digitalWrite(SOLENOID, HIGH);
+      delay(200);
+      digitalWrite(SOLENOID, LOW);
+      // Clear shot flag
+      shooting = 0;
+      // TODO -- Use the clip sensor to determine
+      //         if the shot was successful
+      // DEBUG -- Assume the shot worked
+      --shots_left;
     }
   }
 
@@ -404,11 +406,9 @@ public:
    * @param set_speed Desired flywheel speed
    *                  for shot
    */
-   
   void shoot(unsigned int set_speed) {
-    speed_ = set_speed;
+    speed = set_speed;
     shooting = 1;
-    Serial.println("I got called on!");
   }
 
   /** Returns the number of shots left
@@ -421,14 +421,7 @@ public:
   /** DEBUG -- Set flywheel speed setpoint
    */
   void setSpeed(unsigned int set_speed) {
-    speed_ = set_speed;
-    shooting = 1;
-  }
-
-  void shooter(unsigned int set_speed) {
-    speed_ = set_speed;
-    shooting = 0;
-    Serial.println("I got called on 2!");
+    speed = set_speed;
   }
 
   /** DEBUG -- Get flywheel speed setpoint
@@ -729,7 +722,7 @@ void setup() {
   TCCR1B = 0b00011010;
   OCR1A = 0x0BB8;
   
-  //DriveMotor Code
+    //DriveMotor Code
   pinMode(MOTOR_POW_L, OUTPUT);
   pinMode(MOTOR_DIR_L, OUTPUT); 
 
@@ -739,9 +732,9 @@ void setup() {
   TCCR2A = 0b00000011;
   TCCR2B = 0b00000101; 
 
-  //SHOOTING code
-  pinMode(FLYWHEEL, OUTPUT);
-  pinMode(SOLENOID, OUTPUT);
+//SHOOTING code
+ pinMode(FLYWHEEL, OUTPUT);
+ pinMode(SOLENOID, OUTPUT);
 
 }
 
@@ -778,73 +771,60 @@ void RespToKey(void) {
   Serial.println("");
   
   switch (theKey) {
-    case 'L': {
-      // TAKE A SHOT!
-      Serial.print("Taking a shot at speed=");
-      unsigned int speed = ReadSerialInt();
-      Serial.println(speed);
-      shooter.shooter(speed);
-      }
-    
-    case 'F': {
+    case 'F':
       // SET FLYWHEEL SPEED
-      // This function sets the flywheel speed. It is triggered by an input to the 
-      //serial monitor of the form "F100", where the F tells the program to set the 
-      //flywheel and the int tells us the speed on a map from 0 to 256 (for example).
+      // This function sets the flywheel speed. It is triggered by an input to the serial monitor of the form "F100", where the F tells the program to set the flywheel and the int tells us the speed on a map from 0 to 256 (for example).
       // Responsible: George Herring
       Serial.println("Modifying Motor Speed");
       unsigned int speed;
       shooter.setSpeed(speed);
       Serial.println(speed);
-      }
       
       break;
       
-    case 'A':
+       case 'A':
       // Returns the current flywheel speed as an int between 0 and 256 (suggestion)
       // Responsible: George Herring
-      Serial.print("Fly Wheel Speed is: ");
-      Serial.println(getMotorSpeed());
-      Serial.print("Expected Fly Wheel Speed is: ");
-      Serial.println(shooter.getSpeed());
+     Serial.print("Fly Wheel Speed is: ");
+     Serial.println(getMotorSpeed());
       break;
       
-    case 'B':
+      case 'B':
       // Begins a sensor sweep, collects data for valid Beacon Pattern
       // prints out all beacon values (180)
       bSensor.findBeacons();
       break;
       
-    case 'H':
+      case 'H':
       {// Computes the current heading, expects a valid sensor reading available
       int head = bSensor.getHeading(ReadSerialInt());
       Serial.print("Heading = ");
       Serial.println(head);}
       break;
       
-    case 'R':
+       case 'R':
       // Reverse. Drives the drivetrain backward at a set speed. Stops after 5 seconds.
-      motorLBack();
-      motorRBack();
+          motorLBack();
+          motorRBack();
       break;
       
-    case 'G':
-      // Drives the drivetrain foward at a set speed. 
-      motorLForward();
-      motorRForward();
-      break;
+       case 'G':
+        // Drives the drivetrain foward at a set speed. 
+        motorLForward();
+        motorRForward();
+        break;
       
-    case 'I':
+       case 'I':
       // GO forward and try to align on centerline.
-      {
-        motorLForward(); 
-        motorRForward(); 
-        drive_time = millis();
-        alignment = 0;
-      }
+        {
+          motorLForward(); 
+          motorRForward(); 
+          drive_time = millis();
+          alignment = 0;
+        }
       break;
 
-    case 'Z': {
+      case 'Z': {
       // go backward via line following
       // Responsible: Erica Chin
       int inLoadingZone = 0;
@@ -856,37 +836,36 @@ void RespToKey(void) {
       }
       break;
       
-    case 'Y':
-      {
+       case 'Y':
+       {
       // go forward while line following
-      for (unsigned int catchCounter = 0; catchCounter < 100; catchCounter++){
+       for (unsigned int catchCounter = 0; catchCounter < 100; catchCounter++){
         if(testForLine()) respLineFollow(0); 
-      }
-      }
+       }}
       break;
 
       
-    case 'S':
+       case 'S':
       // trigger solenoid to shoot
-      digitalWrite(SOLENOID, HIGH);
-      delay(200);
-      digitalWrite(SOLENOID, LOW);
+       digitalWrite(SOLENOID, HIGH);
+       delay(200);
+       digitalWrite(SOLENOID, LOW);
       break;
       
-    case 'T':
+       case 'T':
       // turn drivetrain by some number of degrees
       { int angle1 = ReadSerialInt();
       botRotate(angle1);}
       break;
       
-    case 'E':
+       case 'E':
       // emergency stop. Stop the motors from running. 
       // Responsible: Erica Chin
       stopDriveMotors();
       break;
       
-    case 'P':
-      {      // Number of Degrees for Angle
+      case 'P':
+{      // Number of Degrees for Angle
       bSensor.setAngle(ReadSerialInt());}
       break;
       
@@ -911,6 +890,7 @@ void loop() {
   // Line Following upkeep
   testForLine();
 
+  unsigned int analogVal = 112;
   char inputChar;
   //Serial.println(otherVal);
 
