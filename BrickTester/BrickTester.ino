@@ -189,6 +189,7 @@ void loop() {
         respLineBack();
         
         if (respLineBack() == 1){
+          respLineAlign();
           ++my_case;
           }
         break;
