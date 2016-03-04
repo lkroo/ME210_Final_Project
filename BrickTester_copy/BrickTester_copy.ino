@@ -124,7 +124,7 @@ void loop() {
 
               // run beacon test again to prepare for targeting routine
               bSensor.findBeacons();
-              
+              // TODO -- change to case 2
               my_case = 3;
             }
           }
@@ -170,10 +170,9 @@ void loop() {
             ++my_case;
             shooter.setSpeed(0);
           }
-          //else !! if we're out of chips            
           break;
             
-         case 3: // Turn to DEAD_ANGLE_1
+         case 3: // Align bot with far left beacon
               static int leftEdge = 0;
               if (bSensor.isValid()){
                 leftEdge = 70-bSensor.getHeading(0);
@@ -189,7 +188,7 @@ void loop() {
                   bSensor.clear();
                 }
                 else{
-                  my_case = 15;
+                  my_case = 4;
                   bSensor.setAngle(90);
                 }
               }
@@ -197,33 +196,103 @@ void loop() {
                 bSensor.findBeacons();
               }
               break;
-             // TODO -- is botRotate() blocking?
-             // bot_angle = bSensor.getHeading(0);
-             // botRotate(fixAngle(24-bot_angle));
-             // bSensor.clear(); // data is now invalid
-             // motorLForward(); 
-             // motorRForward(); 
-             // alignment = 0;
-             // ++my_case;
-             // break;
-        case 15:
+        case 4: // Drive towards beacon until tape line hit
             static int foundLine = 0;
             foundLine = seekCenterLine(digitalRead(BEACON1));
+            bSensor.clear();
             if(foundLine){
-              my_state = 8;
+              my_case = 5;
+            }
+            break;
+          
+        case 5: // Rotate and back up on line
+            static int inLoading = 0;
+            inLoading = backupLine();
+            bSensor.clear();
+            if(inLoading){
+              my_case = 6;
             }
             break;
 
-        case 4: 
-            if (alignment){                      
-              motorLBack();
-              motorRBack();
+        case 6: // Loading (Waiting)
+            //Serial.print(current_time-startTimeInCase, DEC);
+            if (current_time-startTimeInCase>5000){
+              my_case = 7;
+              shooter.reload(7);
+            }
+            break;
+
+        case 7: // Drive forward
+            forwardLine();
+            if (current_time-startTimeInCase>700){
+              stopDriveMotors();
+              my_case = 8;
+            }
+            break;
+
+        case 8: // Sensor Sweep
+            // wait until we have a valid read
+            if (!bSensor.isValid()) {
+              bSensor.findBeacons();
+            }
+            else {
+            my_case = 9;
+            }
+            break;
+
+        case 9: // Shooting
+          // Find Bot Angle, take shots
+                // on three closest beacons until the clip is empty
+          // if ((shooter.shotsLeft() > 0) && ( !isClipEmpty() )){
+        if (shooter.shotsLeft() > 0){
+            // if clip not empty then go into shooting mode
+            bot_angle = bSensor.getHeading(1);
+            
+            int shotAngle1 = fixAngle(57 -(bot_angle));
+            int shotAngle2 = fixAngle(90 -(bot_angle));
+            int shotAngle3  = fixAngle(123-(bot_angle));
+            unsigned int speed1 = 160;
+            unsigned int speed2 = 155;
+            unsigned int speed3 = 160;
+
+            if ((shooter.shotsLeft() > 5) && 
+                (!shooter.getShooting())) {
+              //shoot at closest beacon                   
+              bSensor.setAngle(shotAngle1); //pan servo
+              shooter.shoot(speed1); //setflywheel speed & shoots
+            }
+
+            if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
+               // shoot at 2nd closest beacon
+              bSensor.setAngle(shotAngle2); //pan servo
+              shooter.shoot(speed2); //setflywheel speed & shoots
+                   
+            }
+
+            if ((shooter.shotsLeft()>0) && (shooter.shotsLeft() < 4)){
+               //shoot at 3rd closest Beacon
+              bSensor.setAngle(shotAngle3); //pan servo
+              shooter.shoot(speed3); //setflywheel speed & shoots              
+              // DEBUG
+              
+            }                  
+          }
+          else {
+            my_case = 5; // return to motor reverse case
+            shooter.setSpeed(0);
+          }
+          break;
+
+        // case 4: 
+        //     if (alignment){                      
+        //       motorLBack();
+        //       motorRBack();
   
-              if(parked()){
-                stopDriveMotors();
-                ++my_case;
-              }
-             }
+        //       if(parked()){
+        //         stopDriveMotors();
+        //         ++my_case;
+        //       }
+        //      }
         // case 5: //timing , move to case 6 once timing for reload is up
         //   if (!isClipEmpty()) {
         //     delay(1000);
@@ -282,30 +351,6 @@ void loop() {
         //     }
         //     //else !! if we're out of chips            
         //     break;
-          
-           
-        case 8: // Drive forward for DEAD_TIME_1
-            static int inLoading = 0;
-            inLoading = backupLine();
-            if(inLoading){
-              my_case = 9;
-            }
-            break;
-
-        case 9://loading
-            //Serial.print(current_time-startTimeInCase, DEC);
-            if (current_time-startTimeInCase>5000){
-              my_case = 10;
-            }
-            break;
-
-        case 10:
-            forwardLine();
-            if (current_time-startTimeInCase>700){
-              stopDriveMotors();
-              my_case = 10;
-            }
-            break;
 
         // case 5: // Turn to DEAD_ANGLE_2
         //     // TODO -- is botRotate() blocking?

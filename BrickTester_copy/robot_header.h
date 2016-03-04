@@ -482,6 +482,10 @@ public:
     shooting = 1;
   }
 
+  void reload(int val) {
+    shots_left = val;
+  }
+
   /** Returns the number of shots left
    *  in our magazine
    */
