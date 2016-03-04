@@ -244,64 +244,31 @@ unsigned char respLineAlign(void){
 // Drives robot to follow a line forward or backward
 // returns 0 if robot is in loading zone
 // returns 1 otherwise
-
-unsigned char respLineFollow(unsigned int toBeacon){
+unsigned char respLineBack(unsigned int toBeacon){
     unsigned char trigger;
-    trigger = getSharedByte();
-    if (trigger == 0000){
-      Serial.println("Bot is in white space?");
-      return 0; //if we are in white space, return no line detected (0)
-    }
+    trigger = trigger & 0b0010101; 
 
-    //Determine which direction we want to head, 
-    //and store that information into the front 
-    //line sensor bit in 'trigger'.
-    if (toBeacon){
-        //if toHome is 1, go to seesaws, 1***
-        trigger = trigger & 1111;
-        }
-    else{
-        //if toHome is 0, go to home beacon, 0***
-        trigger = trigger & 0111;
-        }
-        
-    switch(trigger){ //FORWARD CASES NEED TO BE FIXED DO NOT ENTER 1
-        //forward
-        case(VALlineF0C0): motorRForward(); motorLForward(); break;
-        case(VALlineF000): stopDriveMotors(); break;                  
-            case(VALlineFLCR): motorRForward(); motorLForward(); break;        
-            case(VALlineFL0R): motorRForward(); motorLForward(); break; 
- 
-        //forward right
-        case(VALlineF0CR): stopDriveMotors(); motorLForward(); break;
-        case(VALlineF00R): stopDriveMotors(); motorLForward(); break;
-        
-        //forward left
-        case(VALlineFLC0): stopDriveMotors(); motorRForward(); break;
-        case(VALlineFL00): stopDriveMotors(); motorLForward(); break;
-        
-        //back
-        case(VALline00C0): motorRBack(); motorLBack(); break;
-        case(VALline00CR): motorRBack(); motorLBack(); break; 
-        case(VALline0LC0): motorRBack(); motorLBack(); break;           
-            case(VALline0L0R): motorRBack(); motorLBack(); Serial.println("Weird edge case 0L0R"); break; 
-            
-        //back right
-        case(VALline000R): botRotate(-10); break;
-        
-        //back left
-        case(VALline0L00):  botRotate(10); break;
-        
+    switch(trigger){ //FORWARD CASES NEED TO BE FIXED DO NOT ENTER 1 
+        //go back
+        case VALline00C0: motorLBack();  motorRBack(); break;
+
+        //arc left
+        case VALline00CR: arcBackLeft(); break;
+        case VALline000R: arcBackLeft(); break;
+
+        //arc right
+        case VALline0LC0: arcBackRight(); break;
+        case VALline0L00: arcBackRight(); break;
+
         //stop
-        case(VALline0LCR): stopDriveMotors(); break;
-        case(VALline0000): stopDriveMotors(); break;
-        
-        
-        
+        case VALline0LCR: stopDriveMotors(); break;
+
         default: Serial.println("I broked. line follow blah."); stopDriveMotors(); break;
     }
     return 1; 
-    }
+}
+
+
 
 /** Sets the servo position
  * @param angle unsigned int
@@ -845,7 +812,7 @@ void setServoPos(unsigned int angle){
 
 void arcLeft(void){
   if (!(digitalRead(MOTOR_DIR_L) && ((OCR1B == (motorLSpeed<<1)) && (TCCR1A & 0b00100000)))){
-    digitalWrite(MOTOR_DIR_L  , HIGH);    
+    digitalWrite(MOTOR_DIR_L, HIGH);    
     TCCR1A = TCCR1A | 0b00100000;
     OCR1B = motorLSpeed>>1;
   }
@@ -865,6 +832,34 @@ void arcRight(void){
   }
   if (!(digitalRead(MOTOR_DIR_R) && ((OCR2A == (motorRSpeed<<1)) && (TCCR2A & 0b10000000)))){
     digitalWrite(MOTOR_DIR_R, HIGH);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed>>1;
+  }
+  return;
+}
+
+void arcBackLeft(void){
+  if (!(digitalRead(MOTOR_DIR_L) && ((OCR1B == (motorLSpeed<<1)) && (TCCR1A & 0b00100000)))){
+    digitalWrite(MOTOR_DIR_L, LOW);    
+    TCCR1A = TCCR1A | 0b00100000;
+    OCR1B = motorLSpeed>>1;
+  }
+  if (!(digitalRead(MOTOR_DIR_R) && ((OCR2A == motorRSpeed) && (TCCR2A & 0b10000000)))){
+    digitalWrite(MOTOR_DIR_R, LOW);         
+    TCCR2A = TCCR2A | 0b10000000;
+    OCR2A = motorRSpeed;
+  }
+  return;
+}
+
+void arcBackRight(void){
+  if (!(digitalRead(MOTOR_DIR_L) && ((OCR1B == motorLSpeed) && (TCCR1A & 0b00100000)))){
+    digitalWrite(MOTOR_DIR_L  , LOW);    
+    TCCR1A = TCCR1A | 0b00100000;
+    OCR1B = motorLSpeed;
+  }
+  if (!(digitalRead(MOTOR_DIR_R) && ((OCR2A == (motorRSpeed<<1)) && (TCCR2A & 0b10000000)))){
+    digitalWrite(MOTOR_DIR_R, LOW);         
     TCCR2A = TCCR2A | 0b10000000;
     OCR2A = motorRSpeed>>1;
   }
