@@ -151,12 +151,17 @@ void loop() {
           //else !! if we're out of chips            
           break;
             
-        // case 3: // Turn to DEAD_ANGLE_1
-        //     // TODO -- is botRotate() blocking?
-        //     botRotate(DEAD_ANGLE_1-bot_angle);
-        //     bSensor.clear(); // data is now invalid
-        //     ++my_case;
-        //     break;
+         case 3: // Turn to DEAD_ANGLE_1
+             // TODO -- is botRotate() blocking?
+             bot_angle = bSensor.getHeading(0);
+             botRotate(fixAngle(30-bot_angle));
+             bSensor.clear(); // data is now invalid
+             motorLForward(); 
+             motorRForward(); 
+             drive_time = millis();
+             alignment = 0;
+             ++my_case;
+             break;
 
         // case 4: // Drive forward for DEAD_TIME_1
         //     if (drive_time1==0) {
