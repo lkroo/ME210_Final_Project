@@ -598,7 +598,7 @@ void loop() {
                 // if beacons are not in
                 // view, we should rotate 180 deg
                 bSensor.clear();
-                botRotate(180);
+                botRotate(120);
               }
               // otherwise, proceed
               else {
@@ -608,8 +608,9 @@ void loop() {
             break;
             
         case 2: // Find Bot Angle, take shots
-                // on three 
-            bot_angle = bSensor.getHeading(0);
+                // on three closest beacons until the clip is empty
+                if (shooter.shotsLeft() > 0) && ( isClipEmpty() )
+            bot_angle = bSensor.getHeading(0); 
             ++my_case;
             break;
             
