@@ -16,6 +16,7 @@
  // Driving 
  unsigned long drive_time1 = 0;
 int alignment = 1;
+int reload = 0;
 
 // 
 // SETUP
@@ -81,6 +82,9 @@ void loop() {
           if (!alignment) {
               alignment = respLineAlign();
            }
+//          if (reload){
+//            reload = respLineFollow();
+//          }
       }
     // Run main loop logic
     switch (my_case){
@@ -122,12 +126,12 @@ void loop() {
             // if clip not empty then go into shooting mode
             bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
             
-            int shotAngle1 = fixAngle(85 -(bot_angle));
-            int shotAngle2 = fixAngle(105 -(bot_angle));
-            int shotAngle3  = fixAngle(125-(bot_angle));
+            int shotAngle1 = fixAngle(80 -(bot_angle));
+            int shotAngle2 = fixAngle(100 -(bot_angle));
+            int shotAngle3  = fixAngle(117-(bot_angle));
             unsigned int speed1 = 175;
             unsigned int speed2 = 185;
-            unsigned int speed3 = 205;
+            unsigned int speed3 = 220;
 
             if ((shooter.shotsLeft() > 5) && 
                 (!shooter.getShooting())) {
@@ -153,6 +157,7 @@ void loop() {
           }
           else {
             ++my_case;
+            shooter.setSpeed(0);
           }
           //else !! if we're out of chips            
           break;
@@ -160,14 +165,84 @@ void loop() {
          case 3: // Turn to DEAD_ANGLE_1
              // TODO -- is botRotate() blocking?
              bot_angle = bSensor.getHeading(0);
-             botRotate(fixAngle(45-bot_angle));
+             botRotate(fixAngle(24-bot_angle));
              bSensor.clear(); // data is now invalid
              motorLForward(); 
              motorRForward(); 
              alignment = 0;
              ++my_case;
              break;
+        case 4: 
+            if (alignment){                      
+              motorLBack();
+              motorRBack();
+  
+              if(parked()){
+                stopDriveMotors();
+                ++my_case;
+              }
+             }
+        case 5: //timing , move to case 6 once timing for reload is up
+          if (!isClipEmpty()) {
+            delay(1000);
+            ++my_case;
+            }
+            break;
 
+        case 6:
+          motorLForward(); 
+          motorRForward(); 
+          delay(100);
+          stopDriveMotors();
+          ++my_case;
+          break;
+
+        case 7:
+          
+            int shotsRemaining = 7;
+            while(shotsRemaining>0){
+              if (shooter.shotsLeft() > 0){
+                // if clip not empty then go into shooting mode
+                //bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
+                
+                int shotAngle1 = 90;
+                int shotAngle2 = 57;
+                int shotAngle3 = 123;
+                unsigned int speed1 = 155;
+                unsigned int speed2 = 160;
+                unsigned int speed3 = 160;
+
+                if ((shooter.shotsLeft() > 5) && 
+                    (!shooter.getShooting())) {
+                  //shoot at closest beacon                   
+                  bSensor.setAngle(shotAngle1); //pan servo
+                  shooter.shoot(speed1); //setflywheel speed & shoots
+                }
+
+                if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
+                   // shoot at 2nd closest beacon
+                  bSensor.setAngle(shotAngle2); //pan servo
+                  shooter.shoot(speed2); //setflywheel speed & shoots
+                       
+                }
+
+                if ((shooter.shotsLeft()>0) && (shooter.shotsLeft() < 4)){
+                   //shoot at 3rd closest Beacon
+                  bSensor.setAngle(shotAngle3); //pan servo
+                  shooter.shoot(speed3); //setflywheel speed & shoots              
+                  // DEBUG
+                  
+                }                  
+              }
+              else {
+                my_case = 4;
+                shooter.setSpeed(0);
+              }
+            }
+            //else !! if we're out of chips            
+            break;
+          
+           
         // case 4: // Drive forward for DEAD_TIME_1
         //     if (drive_time1==0) {
         //       drive_time1 = millis();

@@ -39,8 +39,8 @@
 #define VALlineFLC0 0x54
 #define VALlineFLCR 0x55
 
-#define motorLSpeed 0x138b
-#define motorRSpeed 0xd8
+#define motorLSpeed 0x1800//0x138b
+#define motorRSpeed 0xFF//0xd8
 
 // BEACON SENSING
 #define READ_LENGTH 180
@@ -160,6 +160,22 @@ void setSharedInfoTo(unsigned char newByte){
 unsigned char getSharedByte(void){
   return VARsharedByte;
 }
+unsigned char parked(void){
+  unsigned char EventOccurred;
+  unsigned char trigger = 0x00; //LCR
+  unsigned int lightValC = 0;
+  unsigned int lightValL = 0;
+  unsigned int lightValR = 0; 
+  
+  lightValR = analogRead(PINlineSenseR);
+  lightValC = analogRead(PINlineSenseC);
+  lightValL = analogRead(PINlineSenseL);
+  
+  trigger = ((lightValL  >= VALlightTopThreshold)<<4)|((lightValC >=  VALlightTopThreshold)<<2)|(lightValR >= VALlightTopThreshold);
+  
+  EventOccurred = (trigger == VALline0LCR);
+  return EventOccurred;  
+}
 
 unsigned char testForLine(void){
   unsigned char EventOccurred;
@@ -223,23 +239,36 @@ unsigned char respLineAlign(void){
     }
     return 0;
 }
+
+
 // Drives robot to follow a line forward or backward
 // returns 0 if robot is in loading zone
 // returns 1 otherwise
 
-unsigned char respLineFollow(unsigned int toHome){
+unsigned char respLineFollow(unsigned int toBeacon){
     unsigned char trigger;
     trigger = getSharedByte();
-    if (trigger == 0000) return 0; 
-    if (toHome){
-        trigger = trigger & 0111;
-        }
-    else{
+    if (trigger == 0000){
+      Serial.println("Bot is in white space?");
+      return 0; //if we are in white space, return no line detected (0)
+    }
+
+    //Determine which direction we want to head, 
+    //and store that information into the front 
+    //line sensor bit in 'trigger'.
+    if (toBeacon){
+        //if toHome is 1, go to seesaws, 1***
         trigger = trigger & 1111;
         }
-    switch(trigger){
+    else{
+        //if toHome is 0, go to home beacon, 0***
+        trigger = trigger & 0111;
+        }
+        
+    switch(trigger){ //FORWARD CASES NEED TO BE FIXED DO NOT ENTER 1
         //forward
-        case(VALlineF0C0): motorRForward(); motorLForward(); break;  
+        case(VALlineF0C0): motorRForward(); motorLForward(); break;
+        case(VALlineF000): stopDriveMotors(); break;                  
             case(VALlineFLCR): motorRForward(); motorLForward(); break;        
             case(VALlineFL0R): motorRForward(); motorLForward(); break; 
  
@@ -253,20 +282,22 @@ unsigned char respLineFollow(unsigned int toHome){
         
         //back
         case(VALline00C0): motorRBack(); motorLBack(); break;
-            case(VALline0LCR): motorRBack(); motorLBack(); break;
-            case(VALline0L0R): motorRBack(); motorLBack(); break; 
+        case(VALline00CR): motorRBack(); motorLBack(); break; 
+        case(VALline0LC0): motorRBack(); motorLBack(); break;           
+            case(VALline0L0R): motorRBack(); motorLBack(); Serial.println("Weird edge case 0L0R"); break; 
             
         //back right
-        case(VALline00CR): stopDriveMotors(); motorLBack(); break;
-        case(VALline000R): stopDriveMotors(); motorLBack(); break;
+        case(VALline000R): botRotate(-10); break;
         
         //back left
-        case(VALline0LC0):  stopDriveMotors(); motorRBack(); break;
-        case(VALline0L00):  stopDriveMotors(); motorRBack(); break;
+        case(VALline0L00):  botRotate(10); break;
         
         //stop
-        case(VALlineF000): stopDriveMotors; break;        
-        case(VALline0000): stopDriveMotors; break;
+        case(VALline0LCR): stopDriveMotors(); break;
+        case(VALline0000): stopDriveMotors(); break;
+        
+        
+        
         default: Serial.println("I broked. line follow blah."); stopDriveMotors(); break;
     }
     return 1; 
