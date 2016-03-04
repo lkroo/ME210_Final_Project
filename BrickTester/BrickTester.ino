@@ -1,3 +1,5 @@
+#include "arduino.h"
+#include "robot_header.h"
 // /*------ COMPILER DEFINITIONS --------*/
 // // ANALOG SENSORS
 // #define PINclipSense   A0 // clip sensor
@@ -505,24 +507,21 @@
 //   }
 // };
 
-// /*---------Variable Initialization-----------*/
-// // FORGIVE US OUR TRESPASSES, AS WE FORGIVE
-// // THOSE WHO TRESPASS AGAINST US.
-// uint8_t my_case = 1;
-// unsigned long current_time = 0;
-// int desiredBotAngle = 30;
-
-// // Beacon Sensor Object
-// BeaconSensor bSensor; // create new object
-
-// // Shooter Object
-// Shooter shooter(); // create new object
-
-// // Robot absolute heading
-// int bot_angle;
-
-// // Driving 
-// unsigned long drive_time1 = 0;
+ /*---------Variable Initialization-----------*/
+ // FORGIVE US OUR TRESPASSES, AS WE FORGIVE
+ // THOSE WHO TRESPASS AGAINST US.
+ uint8_t my_case = 1;
+ unsigned long current_time = 0;
+ int desiredBotAngle = 30;
+ // Beacon Sensor Object
+ BeaconSensor bSensor; // create new object
+ // Shooter Object
+ Shooter shooter; // create new object
+ // Robot absolute heading
+ int bot_angle;
+ // Driving 
+ unsigned long drive_time1 = 0;
+int alignment = 0;
 
 // 
 // SETUP
@@ -583,19 +582,19 @@ void loop() {
           if (!alignment) {
               alignment = respLineAlign();
            }
-    }
+      }
     // Run main loop logic
-    switch my_case:
+    switch (my_case){
         case 1: // Initiating Beacon Sensor Sweep
           // Take a sensor sweep if we
           // have no valid sensor data
           if (!bSensor.isValid()) {
-            bSensor.findbeacons();
+            bSensor.findBeacons();
           }
           else {
             // check if sensor reading 
             // doesn't meet threshold value
-            if (bSensor.getHeading == -1) {
+            if (bSensor.getHeading(0) == -1) {
               // if beacons are not in
               // view, we should rotate 180 deg
               bSensor.clear();
@@ -603,11 +602,11 @@ void loop() {
             }
             // otherwise, proceed
             else {
-              bot_angle = bSensor.getHeading();
+              bot_angle = bSensor.getHeading(0);
               botRotate(desiredBotAngle - bot_angle);
 
               // run beacon test again to prepare for targeting routine
-              bSensor.findbeacons();
+              bSensor.findBeacons();
               
               ++my_case;
             }
@@ -629,20 +628,20 @@ void loop() {
 
             if (shooter.shotsLeft() > 5){
               //shoot at closest beacon                   
-              bsensor.setAngle(shotAngle1) //pan servo
+              bSensor.setAngle(shotAngle1); //pan servo
               shooter.shoot(speed1); //setflywheel speed & shoots
             }
 
-            if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
+            if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
                // shoot at 2nd closest beacon
-              bsensor.setAngle(shotAngle2) //pan servo
+              bSensor.setAngle(shotAngle2); //pan servo
               shooter.shoot(speed2); //setflywheel speed & shoots
                    
             }
 
-            if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
+            if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
                //shoot at 3rd closest Beacon
-              bsensor.setAngle(shotAngle3) //pan servo
+              bSensor.setAngle(shotAngle3); //pan servo
               shooter.shoot(speed3); //setflywheel speed & shoots              
             }                  
           }
@@ -739,4 +738,5 @@ void loop() {
         // case 13: // GameOver
         //     // - stop all systems.
         //     // - If 2 min expired, case = 13
+    }
 }
