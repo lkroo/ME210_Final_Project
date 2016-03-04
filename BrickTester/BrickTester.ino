@@ -93,11 +93,12 @@ void loop() {
           else {
             // check if sensor reading 
             // doesn't meet threshold value
-            if (bSensor.getHeading(0) == -1) {
+            int temp_head = bSensor.getHeading(0);
+            if ((temp_head == -1) || (temp_head>270)) {
               // if beacons are not in
               // view, we should rotate 180 deg
               bSensor.clear();
-              botRotate(120);
+              botRotate(180);
             }
             // otherwise, proceed
             else {
@@ -118,12 +119,12 @@ void loop() {
             // if clip not empty then go into shooting mode
             bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
             
-            int shotAngle1 = fixAngle(100 -(bot_angle));
-            int shotAngle2 = fixAngle(120 -(bot_angle));
-            int shotAngle3  = fixAngle(133-(bot_angle));
-            unsigned int speed1 = 170;
-            unsigned int speed2 = 173;
-            unsigned int speed3 = 174;
+            int shotAngle1 = fixAngle(85 -(bot_angle));
+            int shotAngle2 = fixAngle(105 -(bot_angle));
+            int shotAngle3  = fixAngle(125-(bot_angle));
+            unsigned int speed1 = 175;
+            unsigned int speed2 = 185;
+            unsigned int speed3 = 205;
 
             if ((shooter.shotsLeft() > 5) && 
                 (!shooter.getShooting())) {
@@ -139,7 +140,7 @@ void loop() {
                    
             }
 
-            if ((shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6)){
+            if ((shooter.shotsLeft()>0) && (shooter.shotsLeft() < 4)){
                //shoot at 3rd closest Beacon
               bSensor.setAngle(shotAngle3); //pan servo
               shooter.shoot(speed3); //setflywheel speed & shoots              
