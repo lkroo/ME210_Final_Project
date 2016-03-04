@@ -366,10 +366,11 @@ int fixAngle(int angle) {
 
 class Shooter {
 private:
-  unsigned int speed = 0;
-  uint8_t shooting   = 0;
-  int speed_error    = 0;
-  uint8_t shots_left = 7;
+  unsigned int velocity         = 0;
+  uint8_t shooting              = 0;
+  unsigned int speed_error      = 0;
+  uint8_t shots_left            = 7;
+  unsigned int stableSpeedCount = 0;
 
 public:
   /** Upkeep function for shooter
@@ -378,12 +379,16 @@ public:
    */
   void shooterUpkeep(unsigned long time) {
     // Set the flywheel speed
-    speed_error = setFlyWheelSpeed(speed);
+    speed_error = setFlyWheelSpeed(velocity);
     // Take a shot if able
     if (shooting){
-      Serial.println(speed_error, DEC);
-      Serial.println((speed_>>SPEED_ERROR_THRESH), DEC);
-      if (speed_error <= (speed_>>SPEED_ERROR_THRESH)) {
+      //Serial.println(speed_error, DEC);
+      //Serial.println((velocity>>SPEED_ERROR_THRESH), DEC);
+      if (speed_error <= (velocity>>SPEED_ERROR_THRESH)) {
+        stableSpeedCount++;
+      }
+      if (stableSpeedCount>400){
+        stableSpeedCount = 0;
         // TODO -- FIX BLOCKING CODE!
         digitalWrite(SOLENOID, HIGH);
         delay(200);
@@ -397,7 +402,6 @@ public:
       }
     }
   }
-
   /** Tells shooter to take a shot at a 
    *  prescribed flywheel speed
    * 
@@ -406,9 +410,8 @@ public:
    */
    
   void shoot(unsigned int set_speed) {
-    speed_ = set_speed;
+    velocity = set_speed;
     shooting = 1;
-    Serial.println("I got called on!");
   }
 
   /** Returns the number of shots left
@@ -421,20 +424,14 @@ public:
   /** DEBUG -- Set flywheel speed setpoint
    */
   void setSpeed(unsigned int set_speed) {
-    speed_ = set_speed;
-    shooting = 1;
-  }
-
-  void shooter(unsigned int set_speed) {
-    speed_ = set_speed;
-    shooting = 0;
-    Serial.println("I got called on 2!");
+    velocity = set_speed;
+    //shooting = 0;
   }
 
   /** DEBUG -- Get flywheel speed setpoint
    */
   unsigned int getSpeed() {
-    return speed;
+    return velocity;
   }
 };
 
@@ -781,10 +778,12 @@ void RespToKey(void) {
     case 'L': {
       // TAKE A SHOT!
       Serial.print("Taking a shot at speed=");
-      unsigned int speed = ReadSerialInt();
-      Serial.println(speed);
-      shooter.shooter(speed);
+      unsigned int velocity = ReadSerialInt();
+      Serial.println(velocity);
+      shooter.shoot(velocity);
       }
+
+      break;
     
     case 'F': {
       // SET FLYWHEEL SPEED
@@ -793,9 +792,9 @@ void RespToKey(void) {
       //flywheel and the int tells us the speed on a map from 0 to 256 (for example).
       // Responsible: George Herring
       Serial.println("Modifying Motor Speed");
-      unsigned int speed;
-      shooter.setSpeed(speed);
-      Serial.println(speed);
+      unsigned int velocity = ReadSerialInt();
+      shooter.setSpeed(velocity);
+      Serial.println(velocity);
       }
       
       break;
