@@ -55,7 +55,7 @@
 
 // SHOOTING
 // required flywheel speed proportion to take a shot
-#define SPEED_ERROR_THRESH 8
+#define SPEED_ERROR_THRESH 3
 
 // 
 // MISCELLANEOUS
@@ -439,8 +439,9 @@ public:
    *                  for shot
    */
   void shoot(unsigned int set_speed) {
-    velocity = set_speed;
-    shooting = 1;
+    if (shooting == 0) {
+      velocity = set_speed;
+      shooting = 1;}
   }
 
   void shootAdditional(void){
@@ -452,6 +453,12 @@ public:
    */
   uint8_t shotsLeft() {
     return shots_left;
+  }
+
+  /** 
+   */
+  int getShooting(){ 
+    return shooting;
   }
 
   /** DEBUG -- Set flywheel speed setpoint
@@ -595,6 +602,7 @@ public:
       // End scan
       if (idx_==0) {
         scanning_ = 0;
+        valid_read_ = 1;
       }
     }
 
@@ -606,8 +614,10 @@ public:
   /** Begins a new sensor sweep
    */
   void findBeacons() {
+    if (scanning_ ==0 ) {
     scanning_   = 1;
     scan_start_ = 1;
+    }
   }
   
   /** Set new servo setpoint;
