@@ -621,15 +621,26 @@ void loop() {
                   // if clip not empty then go into shooting mode
                   bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
                   
-                  int shotAngle1 = 100;
-                  int shotAngle2 = 120;
-                  int shotAngle3  =133;
-                  int speed1 = 160;
-                  int speed2 = 163;
-                  int speed3 = 164;
+                  int shotAngle1 = 100 -bot_angle;
+                  int shotAngle2 = 120- bot_angle;
+                  int shotAngle3  = 133-bot_angle;
+                  unsigned int speed1 = 160;
+                  unsigned int speed2 = 163;
+                  unsigned int speed3 = 164;
 
                   if (shooter.shotsLeft() > 5){
                     //shoot at closest beacon
+
+                    //pan servo
+                    bsensor.setAngle(shotAngle1)
+
+                    //setflywheel speed
+                    shooter.setSpeed(speed1);
+
+                    //shoot
+                     digitalWrite(SOLENOID, HIGH);
+                     delay(200);
+                     digitalWrite(SOLENOID, LOW);
                     
                     
                   }
