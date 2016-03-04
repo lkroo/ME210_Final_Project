@@ -418,6 +418,10 @@ public:
     shooting = 1;
   }
 
+  void shootAdditional(void){
+    shooting = 1;
+  }
+
   /** Returns the number of shots left
    *  in our magazine
    */
@@ -730,7 +734,7 @@ void setup() {
   TCCR1B = 0b00011010;
   OCR1A = 0x0BB8;
   
-    //DriveMotor Code
+  //DriveMotor Code
   pinMode(MOTOR_POW_L, OUTPUT);
   pinMode(MOTOR_DIR_L, OUTPUT); 
 
@@ -740,9 +744,9 @@ void setup() {
   TCCR2A = 0b00000011;
   TCCR2B = 0b00000101; 
 
-//SHOOTING code
- pinMode(FLYWHEEL, OUTPUT);
- pinMode(SOLENOID, OUTPUT);
+  //SHOOTING code
+  pinMode(FLYWHEEL, OUTPUT);
+  pinMode(SOLENOID, OUTPUT);
 
 }
 
@@ -801,92 +805,91 @@ void RespToKey(void) {
       
       break;
       
-       case 'A':
-      // Returns the current flywheel speed as an int between 0 and 256 (suggestion)
-      // Responsible: George Herring
-     Serial.print("Fly Wheel Speed is: ");
-     Serial.println(getMotorSpeed());
-      break;
+      case 'A':{
+        // Returns the current flywheel speed as an int between 0 and 256 (suggestion)
+        // Responsible: George Herring
+        Serial.print("Fly Wheel Speed is: ");
+        Serial.println(getMotorSpeed());
+        }
+        break;
       
       case 'B':
-      // Begins a sensor sweep, collects data for valid Beacon Pattern
-      // prints out all beacon values (180)
-      bSensor.findBeacons();
-      break;
+        // Begins a sensor sweep, collects data for valid Beacon Pattern
+        // prints out all beacon values (180)
+        bSensor.findBeacons();
+        break;
       
       case 'H':
-      {// Computes the current heading, expects a valid sensor reading available
-      int head = bSensor.getHeading(ReadSerialInt());
-      Serial.print("Heading = ");
-      Serial.println(head);}
-      break;
+        {// Computes the current heading, expects a valid sensor reading available
+        int head = bSensor.getHeading(ReadSerialInt());
+        Serial.print("Heading = ");
+        Serial.println(head);
+        }
+        break;
       
-       case 'R':
-      // Reverse. Drives the drivetrain backward at a set speed. Stops after 5 seconds.
-          motorLBack();
-          motorRBack();
-      break;
+      case 'R':
+        // Reverse. Drives the drivetrain backward at a set speed. Stops after 5 seconds.
+        motorLBack();
+        motorRBack();
+        break;
       
-       case 'G':
+      case 'G':
         // Drives the drivetrain foward at a set speed. 
         motorLForward();
         motorRForward();
         break;
       
        case 'I':
-      // GO forward and try to align on centerline.
+        // GO forward and try to align on centerline.
         {
           motorLForward(); 
           motorRForward(); 
           drive_time = millis();
           alignment = 0;
         }
-      break;
+        break;
 
       case 'Z': {
-      // go backward via line following
-      // Responsible: Erica Chin
-      int inLoadingZone = 0;
-      unsigned int catchCounter = 0; 
+        // go backward via line following
+        // Responsible: Erica Chin
+        int inLoadingZone = 0;
+        unsigned int catchCounter = 0; 
         while (!inLoadingZone && catchCounter < 10){
           if (testForLine()) inLoadingZone = respLineFollow(1);
           catchCounter += 1; 
         }
-      }
-      break;
+        }
+        break;
       
-       case 'Y':
-       {
-      // go forward while line following
-       for (unsigned int catchCounter = 0; catchCounter < 100; catchCounter++){
-        if(testForLine()) respLineFollow(0); 
-       }}
-      break;
+      case 'Y': {
+        // go forward while line following
+        for (unsigned int catchCounter = 0; catchCounter < 100; catchCounter++){
+          if(testForLine()) respLineFollow(0); 
+        }
+        }
+        break;
 
       
-       case 'S':
-      // trigger solenoid to shoot
-       digitalWrite(SOLENOID, HIGH);
-       delay(200);
-       digitalWrite(SOLENOID, LOW);
-      break;
+      case 'S':
+        // trigger solenoid to shoot
+        shooter.shootAdditional();
+        break;
       
-       case 'T':
-      // turn drivetrain by some number of degrees
-      { int angle1 = ReadSerialInt();
-      botRotate(angle1);}
-      break;
+      case 'T':
+        // turn drivetrain by some number of degrees
+        { int angle1 = ReadSerialInt();
+        botRotate(angle1);}
+        break;
       
-       case 'E':
-      // emergency stop. Stop the motors from running. 
-      // Responsible: Erica Chin
-      stopDriveMotors();
-      break;
+      case 'E':
+        // emergency stop. Stop the motors from running. 
+        // Responsible: Erica Chin
+        stopDriveMotors();
+        break;
       
-      case 'P':
-{      // Number of Degrees for Angle
-      bSensor.setAngle(ReadSerialInt());}
-      break;
+      case 'P':{      // Number of Degrees for Angle
+        bSensor.setAngle(ReadSerialInt());}
+        break;
       
   }
 }
