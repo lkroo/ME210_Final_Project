@@ -94,7 +94,10 @@ void loop() {
             // check if sensor reading 
             // doesn't meet threshold value
             int temp_head = bSensor.getHeading(0);
-            if ((temp_head == -1) || (temp_head>270)) {
+            Serial.print("Heading=");
+            Serial.println(temp_head);
+            if ((temp_head == -1) || 
+              ((temp_head>270)&&(temp_head<300))) {
               // if beacons are not in
               // view, we should rotate 180 deg
               bSensor.clear();
@@ -144,10 +147,12 @@ void loop() {
                //shoot at 3rd closest Beacon
               bSensor.setAngle(shotAngle3); //pan servo
               shooter.shoot(speed3); //setflywheel speed & shoots              
+              // DEBUG
+              
             }                  
           }
           else {
-          ++my_case;
+            ++my_case;
           }
           //else !! if we're out of chips            
           break;
@@ -155,11 +160,10 @@ void loop() {
          case 3: // Turn to DEAD_ANGLE_1
              // TODO -- is botRotate() blocking?
              bot_angle = bSensor.getHeading(0);
-             botRotate(fixAngle(30-bot_angle));
+             botRotate(fixAngle(45-bot_angle));
              bSensor.clear(); // data is now invalid
              motorLForward(); 
              motorRForward(); 
-             drive_time = millis();
              alignment = 0;
              ++my_case;
              break;
