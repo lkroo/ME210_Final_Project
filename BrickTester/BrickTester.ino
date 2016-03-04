@@ -609,8 +609,34 @@ void loop() {
             
         case 2: // Find Bot Angle, take shots
                 // on three closest beacons until the clip is empty
-                if (shooter.shotsLeft() > 0) && ( isClipEmpty() )
-            bot_angle = bSensor.getHeading(0); 
+                if ((shooter.shotsLeft() > 0) && ( ! isClipEmpty() )){
+                  bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
+                  int shotAngle1 = 100;
+                  int shotAngle2 = 120;
+                  int shotAngle3  =133;
+                  int speed1 = 160;
+                  int speed2 = 163;
+                  int speed3 = 164;
+
+                  if (shooter.shotsLeft() > 5){
+                    //shoot at closest beacon
+                    int shotAngle1 = 100;
+                  }
+
+                  if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
+                     // shoot at 2nd closest beacon
+                     int shotAngle2 = 120;
+                     
+                  }
+
+                  if (shooter.shotsLeft()>3) && (shooter.shotsLeft() < 6){
+                     //shoot at 3rd closest Beacon
+                     int shotAngle3  =133;
+                  }
+
+                  
+                  }
+            
             ++my_case;
             break;
             
