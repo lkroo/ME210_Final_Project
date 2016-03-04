@@ -162,7 +162,7 @@ void loop() {
           //else !! if we're out of chips            
           break;
             
-         case 3: // Turn to DEAD_ANGLE_1
+         case 3: // drive toward centerline, ALIGN pointing toward beacons, stop
               static int leftEdge = 0;
               if (bSensor.isValid()){
                 leftEdge = bSensor.lEdge();
@@ -184,24 +184,31 @@ void loop() {
              // alignment = 0;
              // ++my_case;
              // break;
-        case 4: 
-            if (alignment){                      
-              motorLBack();
-              motorRBack();
-  
-              if(parked()){
-                stopDriveMotors();
-                ++my_case;
-              }
-             }
-        case 5: //timing , move to case 6 once timing for reload is up
+        
+        case 4: // move back and stop on T via line following
+        respLineBack();
+        
+        if (respLineBack() == 1){
+          ++my_case;
+          }
+        break;
+//            if (alignment){                      
+//              motorLBack();
+//              motorRBack();
+//  
+//              if(parked()){
+//                stopDriveMotors();
+//                ++my_case;
+//              }
+//             }
+        case 5: //stop for a while to give us the chance to reload our little cute bot. Delay is set for 1 sec.
           if (!isClipEmpty()) {
             delay(1000);
             ++my_case;
             }
             break;
 
-        case 6:
+        case 6: // move forward and stop after a timer.
           motorLForward(); 
           motorRForward(); 
           delay(100);
