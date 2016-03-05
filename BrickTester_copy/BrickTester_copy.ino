@@ -60,9 +60,10 @@ void loop() {
     // Serial.print("heading");
     // Serial.println(bSensor.getHeading(0));
     // Update main timer
-    static int startTimeInCase = 0;
+    static unsigned long startTimeInCase = 0;
     static int previousCase = 0;
-    static int my_case = 8;
+    static int my_case = 1; // default
+//     static int my_case = 5; // test intermediate
     if(previousCase!=my_case){
       Serial.print("In case:");
       Serial.println(my_case, DEC);
@@ -76,6 +77,9 @@ void loop() {
     // Check for game end
     if (current_time > GAME_TIME) {
         my_case = 13; // disable robot
+        shooter.shoot(0); // stop flywheel
+        stopDriveMotors();
+        analogWrite(FLYWHEEL,0);
     }
     
     //////////////  Run upkeep  /////////////////
@@ -137,14 +141,14 @@ void loop() {
             // if clip not empty then go into shooting mode
             bot_angle = bSensor.getHeading(0); //CHECK: is the 0 input of get heading correct??!
             
-            int shotAngle1 = fixAngle(80 -(bot_angle));
-            int shotAngle2 = fixAngle(100 -(bot_angle));
-            int shotAngle3  = fixAngle(117-(bot_angle));
+            int shotAngle1 = fixAngle(93 -(bot_angle));
+            int shotAngle2 = fixAngle(95 -(bot_angle));
+            int shotAngle3  = fixAngle(97-(bot_angle));
             unsigned int speed1 = 175;
-            unsigned int speed2 = 185;
-            unsigned int speed3 = 220;
+            unsigned int speed2 = 175;
+            unsigned int speed3 = 175;
 
-            if ((shooter.shotsLeft() > 5) && 
+            if ((shooter.shotsLeft() > 0) && 
                 (!shooter.getShooting())) {
               //shoot at closest beacon                   
               bSensor.setAngle(shotAngle1); //pan servo
@@ -167,28 +171,30 @@ void loop() {
             }                  
           }
           else {
-            ++my_case;
+            my_case = 4; // go to beacon line forward
             shooter.setSpeed(0);
+            bSensor.setAngle(90);
           }
           break;
             
          case 3: // Align bot with far left beacon
               static int leftEdge = 0;
               if (bSensor.isValid()){
-                leftEdge = 70-bSensor.getHeading(0);
+                leftEdge = 65-bSensor.getHeading(0);
                 if (leftEdge>180){
                   leftEdge -= 360;
                 }
                 else if (leftEdge<-180){
                   leftEdge += 360;
                 }
-                if (abs(leftEdge)>7){
+                if (abs(leftEdge)>9){
                   Serial.print(leftEdge, DEC);
                   botRotate(leftEdge);
                   bSensor.clear();
                 }
                 else{
-                  my_case = 4;
+                  my_case = 2; // go to shooting
+                  // my_case = 4; // skip shooting
                   bSensor.setAngle(90);
                 }
               }
@@ -208,7 +214,7 @@ void loop() {
         case 5: // Rotate and back up on line
             static int inLoading = 0;
             inLoading = backupLine();
-            bSensor.clear();
+            // bSensor.clear();
             if(inLoading){
               my_case = 6;
             }
@@ -236,7 +242,8 @@ void loop() {
               bSensor.findBeacons();
             }
             else {
-            my_case = 9;
+               my_case = 9; // GO TO SHOOTING
+//              my_case = 5; // DEBUG
             }
             break;
 
@@ -251,9 +258,9 @@ void loop() {
             int shotAngle1 = fixAngle(57 -(bot_angle));
             int shotAngle2 = fixAngle(90 -(bot_angle));
             int shotAngle3  = fixAngle(123-(bot_angle));
-            unsigned int speed1 = 160;
-            unsigned int speed2 = 155;
-            unsigned int speed3 = 160;
+            unsigned int speed1 = 151;
+            unsigned int speed2 = 150;
+            unsigned int speed3 = 151;
 
             if ((shooter.shotsLeft() > 5) && 
                 (!shooter.getShooting())) {
@@ -421,5 +428,10 @@ void loop() {
         // case 13: // GameOver
         //     // - stop all systems.
         //     // - If 2 min expired, case = 13
+        case 13:
+          shooter.shoot(0); // stop flywheel
+          stopDriveMotors();
+          analogWrite(FLYWHEEL,0);
+          break;
     }
 }

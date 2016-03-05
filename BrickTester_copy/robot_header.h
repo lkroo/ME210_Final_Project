@@ -44,7 +44,7 @@
 
 // BEACON SENSING
 #define READ_LENGTH 180
-#define READ_TIME 20  // Time for short move
+#define READ_TIME 15  // Time for short move
 #define CONV_THRESH 1 // Threshold for a valid signal sweep
 #define IDX2DEG(idx) idx*180/READ_LENGTH // convert id to angle
 
@@ -451,7 +451,7 @@ public:
         Serial.println(stableSpeedCount);
       }
       // TODO -- use timer instead of machine cycle
-      if (stableSpeedCount>20){
+      if (stableSpeedCount>25){
         stableSpeedCount = 0;
         // TODO -- FIX BLOCKING CODE!
         digitalWrite(SOLENOID, HIGH);
@@ -715,11 +715,11 @@ public:
           // Take reading at current sensor angle
           read_current_[idx_] = digitalRead(BEACON1);
           // DEBUG -- print values
-          Serial.print("[");
-          Serial.print(idx_);
-          Serial.print(",");
-          Serial.print(read_current_[idx_]);
-          Serial.println("]");
+          // Serial.print("[");
+          // Serial.print(idx_);
+          // Serial.print(",");
+          // Serial.print(read_current_[idx_]);
+          // Serial.println("]");
 
           // Sweep the servo idx_
           sweepAngle();
@@ -732,10 +732,6 @@ public:
       if (idx_==0) {
         scanning_ = 0;
         valid_read_ = 1;
-      }
-
-      if (edge_finding_) {
-
       }
     }
 
@@ -909,10 +905,10 @@ int seekCenterLine(bool beaconVal){
   //Serial.println(trigger, HEX);
   switch(trigger){
     //if the center has hit the line, then bot rotates clockwise
-    case(VALline00C0): botRotate(-10); break; 
-    case(VALline0LC0): botRotate(-10); break;
-    case(VALline0LCR): botRotate(-10); break;
-    case(VALline00CR): botRotate(-10); break; 
+    case(VALline00C0): botRotate(-5); break; 
+    case(VALline0LC0): botRotate(-5); break;
+    case(VALline0LCR): botRotate(-5); break;
+    case(VALline00CR): botRotate(-5); break; 
 
     case(VALline0000): 
       if(beaconVal){
@@ -932,13 +928,13 @@ int seekCenterLine(bool beaconVal){
       }
       break;
          
-    case(VALline000R): botRotate(-10); break;
-    case(VALline0L00): botRotate(-10); break;
-    case(VALline0L0R): botRotate(-10); break;
+    case(VALline000R): botRotate(-5); break;
+    case(VALline0L00): botRotate(-5); break;
+    case(VALline0L0R): botRotate(-5); break;
 
-    case(VALlineFL0R): stopDriveMotors(); break;
-    case(VALlineF00R): motorLForward(); break;
-    case(VALlineFL00): motorRForward(); break;
+    case(VALlineFL0R): stopDriveMotors(); return 1; break;
+    case(VALlineF00R): stopDriveMotors(); return 1; break;
+    case(VALlineFL00): stopDriveMotors(); return 1; break;
     
 
     //if center and front are true, then we're aligned
@@ -962,12 +958,12 @@ int backupLine(void){
   switch(trigger){
     //if the center has hit the line, then bot rotates clockwise
     case(VALline00C0): motorRBack(); motorLBack(); break; 
-    case(VALline0LC0): motorRBack(); motorLBack(); break;
-    case(VALline00CR): motorRBack(); motorLBack(); break; 
+    case(VALline0LC0): arcLeftBack(); break;
+    case(VALline00CR): arcRightBack(); break; 
 
     case(VALline0000): motorRBack(); motorLBack();break;
 
-    case(VALlineF000): motorRBack(); motorLBack(); break;
+    case(VALlineF000): arcRightBack(); break;
          
     case(VALline000R): arcRightBack(); break;
     case(VALline0L00): arcLeftBack(); break;
